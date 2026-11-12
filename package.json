@@ -1,0 +1,21 @@
+{
+  "name": "ai-risk-snapshot",
+  "version": "1.1.0",
+  "description": "Local, read-only AI agent risk snapshot scanner. Nothing leaves your machine.",
+  "main": "src/cli.js",
+  "bin": {
+    "ai-risk-snapshot": "src/cli.js"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "scripts": {
+    "start": "node src/cli.js"
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.0"
+  },
+  "keywords": ["ai", "compliance", "eu-ai-act", "security", "audit", "agents"],
+  "files": ["src/", "rules/", "README.md", "LICENSE"],
+  "license": "MIT"
+}

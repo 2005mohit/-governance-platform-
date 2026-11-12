@@ -1,0 +1,440 @@
+
+rules:
+  - id: IDENTITY_KEY
+    title: "Static API Key / Secret Detected"
+    article: "Article 15 (Cybersecurity)"
+    severity: "CRITICAL"
+    fileTypes: ["code", "env", "iac"]
+    patterns:
+      - "sk-[A-Za-z0-9]{16,}"
+      - "AKIA[0-9A-Z]{16}"
+      - "-----BEGIN RSA PRIVATE KEY-----"
+      - "AWS_SECRET_ACCESS_KEY\\s*[:=]\\s*['\"]?[A-Za-z0-9/+=]{20,}"
+      - "ghp_[A-Za-z0-9]{30,}"
+    description: >
+      A hardcoded secret was detected. Static credentials are a cybersecurity
+      risk in their own right and often the root cause of agent identity/privilege
+      creep, since a leaked key is typically over-scoped relative to what any
+      single agent actually needs.
+    whatItChecks: >
+      Looks for text shaped like a live credential (API keys, AWS access keys,
+      private keys, GitHub tokens) in code, env files, and IaC configs.
+    falsePositiveNote: >
+      High confidence when the match looks like a real, correctly formatted
+      credential. If it's placeholder/sample text in a test fixture or README,
+      it may not be a live exposure — but shipping secret-shaped strings is a
+      bad pattern regardless.
+    consequence: >
+      A leaked static credential can be used to impersonate the service it
+      grants access to — a direct cybersecurity exposure that can outlive the
+      review that missed it.
+    fix: >
+      Move the value to a secret manager or environment variable, rotate the
+      leaked key, and confirm it's revoked.
+
+  - id: IAM_WILDCARD
+    title: "Overly Broad IAM Permission (Wildcard Action/Resource)"
+    article: "Article 15 (Cybersecurity) & Article 9 (Risk Management)"
+    severity: "CRITICAL"
+    fileTypes: ["iac"]
+    patterns:
+      # JSON style: "Action": "*"
+      - "\"Action\"\\s*:\\s*\"\\*\""
+      - "\"Resource\"\\s*:\\s*\"\\*\""
+      # YAML style: Action: "*"  /  Action: '*'  /  Action: *
+      # The [A-Za-z*] lookbehind also rejects markdown prose like "**Action:**"
+      # or "*Action:*", which would otherwise false-positive on this pattern.
+      - "(?<![A-Za-z*])Action\\s*:\\s*['\"]?\\*['\"]?"
+      - "(?<![A-Za-z*])Resource\\s*:\\s*['\"]?\\*['\"]?"
+      # HCL style (Terraform): Action = "*"  /  Action= "*"
+      - "(?<![A-Za-z])Action\\s*=\\s*['\"]?\\*['\"]?"
+      - "(?<![A-Za-z])Resource\\s*=\\s*['\"]?\\*['\"]?"
+    description: >
+      A wildcard IAM action or resource was found in an infrastructure-as-code
+      file (Terraform / CloudFormation / Serverless config). This grants far
+      broader access than almost any agent needs and violates least-privilege.
+    note: >
+      This is a STATIC file scan only — it does not call any cloud API and
+      does not check your live IAM configuration in the console.
+    whatItChecks: >
+      Looks for `Action: "*"` or `Resource: "*"` in Terraform, CloudFormation,
+      and similar infrastructure-as-code files — a classic least-privilege gap.
+    # A wildcard pattern on its own is ambiguous (it also matches prose like
+    # "**Action:**" in docs or AI-generated output). The finding is only
+    # reported when the file also shows signs of being real IAM/IaC content.
+    contextPatterns:
+      - "PolicyDocument"
+      - "Statement"
+      - '"Effect"'
+      - "arn:aws:iam"
+      - "AWS::IAM"
+      - 'resource "aws_'
+      - "aws_iam"
+      - "google_iam_"
+      - "azurerm_role"
+      - "ManagedPolicy"
+      - "IAMRole"
+      - "Principal"
+    falsePositiveNote: >
+      Low false-positive risk: a wildcard in real IaC is almost always an
+      intentional (if over-broad) grant. The real question is whether it's
+      justified, not whether it exists. A grant applied live in the console
+      but not present in these scanned files won't appear here.
+    consequence: >
+      A wildcard grant means a compromised agent can reach far beyond its
+      actual job — one incident turns into broad, unintended access.
+    fix: >
+      Replace the `*` with the specific actions and resources the agent
+      actually needs.
+
+  - id: NO_HUMAN_LOOP
+    title: "Missing Human-in-the-Loop for High-Risk Action"
+    article: "Article 14 (Human Oversight)"
+    severity: "CRITICAL"
+    fileTypes: ["code"]
+    logic: "high_risk_action_without_approval"
+    # Shared taxonomy: resolved by the scanner from high_risk_actions.yaml.
+    # An inline `actions:` list, if present, takes precedence for this rule.
+    actionsRef: "high_risk_actions"
+    approvalMarkers:
+      - "human_approval"
+      - "await_approval"
+      - "require_approval"
+      - "manager_signoff"
+      - "hitl_check"
+      - "pause_for_review"
+    proximityLines: 15
+    description: >
+      A destructive or irreversible action was found with no recognised
+      human-approval marker within +/- 15 lines. Proximity-based, not a full
+      control-flow analysis — verify manually before treating as confirmed.
+    whatItChecks: >
+      Finds a destructive or irreversible call (delete, transfer, terminate,
+      deny_loan, send_payment, ...) and looks for a human-approval marker in
+      the nearby lines of the same file.
+    falsePositiveNote: >
+      Heuristic, by design. Real oversight can live in a Slack workflow, a
+      separate service call, or a layer this scanner can't see (UI, middleware,
+      a queue). Absence of an in-code marker doesn't prove no human review
+      exists — but it's a good place to look, and worth showing us if it's
+      handled elsewhere.
+    consequence: >
+      An irreversible or high-stakes action can run with no person able to
+      stop or review it — the core Article 14 human-oversight concern.
+    fix: >
+      Add a human approval step (pause, confirm, or explicit sign-off) that
+      must complete before the action executes.
+
+  - id: NO_LOGGING
+    title: "Missing Audit Log Around a High-Risk Action"
+    article: "Article 12 (Record-Keeping / Logging)"
+    severity: "HIGH"
+    fileTypes: ["code"]
+    logic: "high_risk_action_without_logging"
+    # Shared taxonomy: resolved by the scanner from high_risk_actions.yaml.
+    # An inline `actions:` list, if present, takes precedence for this rule.
+    actionsRef: "high_risk_actions"
+    loggingMarkers:
+      - "logger\\."
+      - "log\\.(info|warn|error|audit)"
+      - "audit_log"
+      - "logging\\."
+    proximityLines: 15
+    description: >
+      No logging call was detected near this high-risk action. If it fires in
+      production, there may be no automatic record of it having happened.
+    whatItChecks: >
+      Finds a high-risk call and looks for a logging/audit call in the same
+      neighbourhood of the file.
+    falsePositiveNote: >
+      Heuristic, by design. Logging is often configured once at a framework or
+      gateway level (interceptors, middleware, an observability agent) rather
+      than next to every call. Absence here doesn't prove no audit record is
+      written — but it's the right question to ask.
+    consequence: >
+      If the action fires in production, there may be no automatic record of
+      what happened, who asked for it, or when — incidents become untraceable
+      and audits have nothing to work from.
+    fix: >
+      Add a structured log line (who, what, when) at the point of the action.
+
+  - id: NO_AI_DISCLOSURE
+    title: "Possible Missing AI Transparency Disclosure"
+    article: "Article 50 (Transparency Obligations)"
+    severity: "MEDIUM"
+    fileTypes: ["code"]
+    logic: "system_prompt_without_disclosure"
+    disclosurePatterns:
+      - "you('re| are) (talking to|interacting with) an AI"
+      - "i am an AI"
+      - "this is an AI"
+      - "automated (assistant|system)"
+    description: >
+      A system prompt was found with no obvious language disclosing to end
+      users that they're interacting with AI. Heuristic only — many valid
+      disclosures won't match these exact phrases. Confirm manually.
+    whatItChecks: >
+      Finds an actual prompt body (a prompt variable assignment, an OpenAI-style
+      "system" role message, or prompt text) and checks the text of that prompt
+      for a phrase telling end users they're interacting with AI. Import lines
+      and function signatures that merely mention "system_prompt" do not count
+      as prompts.
+    falsePositiveNote: >
+      Heuristic only — many valid disclosures are worded differently (a footer,
+      a terms link, a platform-level notice) and won't match these exact
+      phrases. Missing here is a reason to confirm, not proof of a violation.
+    consequence: >
+      If the prompt reaches end users without telling them they're talking to
+      an AI, that's a transparency gap under Article 50.
+    fix: >
+      Add a clear disclosure to the user-facing prompt or UI, e.g. "You are
+      talking to an AI assistant."
+    maxFindings: 5
+
+  - id: HTTP_NO_AUTH
+    title: "HTTP Endpoints Without Authentication"
+    article: "Article 15 (Cybersecurity)"
+    severity: "HIGH"
+    fileTypes: ["code"]
+    logic: "endpoint_auth"
+    description: >
+      One or more files define HTTP routes but contain no authentication or
+      authorization code. Unauthenticated endpoints that read or change
+      sensitive data — uploads, decision endpoints, deletions — are a direct
+      Article 15 exposure.
+    whatItChecks: >
+      Finds files that define HTTP routes (FastAPI/Flask/Express-style
+      decorators) and checks whether the same file contains endpoint-auth
+      code (OAuth2/bearer, dependency-injected auth, login guards, JWT
+      verification).
+    falsePositiveNote: >
+      Heuristic. Authentication can be enforced centrally (a gateway,
+      middleware, or a separate auth module) rather than in each route file.
+      Absence here is a reason to verify where authentication is actually
+      enforced before the route handler runs.
+    consequence: >
+      Anyone who can reach the server can call these endpoints without proving
+      who they are — including destructive or privacy-sensitive ones.
+    fix: >
+      Require authentication on every endpoint that can read or change
+      sensitive data, and confirm the enforcement point actually runs before
+      the route handler.
+
+  - id: AUTO_DECISION
+    title: "Automatic Approve/Reject Decision Without a Human Step"
+    article: "Article 14 (Human Oversight)"
+    severity: "HIGH"
+    fileTypes: ["code"]
+    # FIX 1: before flagging, the scanner structurally checks (.py only)
+    # whether this assignment RECORDS an incoming human decision (review
+    # handler — suppressed) or COMPUTES one (flagged, method ast-confirmed).
+    receiverCheck: true
+    patterns:
+      - "(?:decision|result|outcome|verdict|application)\\.?\\[?['\"]?status['\"]?\\]?\\s*[:=]\\s*['\"](approved|rejected|denied|accepted|declined)['\"]"
+      - "['\"]status['\"]\\s*:\\s*['\"](approved|rejected|denied|accepted|declined)['\"]"
+    contextPatterns:
+      - "\\b(decision|verdict|underwriting|creditworthiness|eligib|approval decision)\\b"
+    description: >
+      Code assigns a final "approved" or "rejected" outcome to a decision,
+      verdict, or application status with no human approval step in the file.
+      For high-risk uses (credit, employment, essential services) this is the
+      Article 14 concern: the machine makes a consequential call alone.
+    whatItChecks: >
+      Looks for an automatic assignment of an approve/reject outcome to a
+      decision-like status (decision, verdict, application, underwriting)
+      rather than a request routed to a person.
+    falsePositiveNote: >
+      Heuristic. The final decision may still go through a human before it
+      takes effect (a later review queue, a separate approval service). The
+      finding flags where an automatic approve/reject outcome is produced in
+      code — verify what happens after it.
+    consequence: >
+      A consequential decision can be made with no person able to review or
+      override it before it takes effect — the core Article 14 concern for
+      high-risk AI.
+    fix: >
+      Route automatic approve/reject outcomes through a human review step
+      (or an explicit override) before the decision becomes final.
+
+  - id: CORS_WILDCARD
+    title: "Permissive CORS (allow_origins=[\"*\"])"
+    article: "Article 15 (Cybersecurity)"
+    severity: "MEDIUM"
+    fileTypes: ["code"]
+    patterns:
+      - "allow_origins\\s*[:=]\\s*\\[\\s*['\"]\\*['\"]"
+    description: >
+      A CORS configuration allows any origin to call the API. Combined with
+      credentials (allow_credentials=true) this lets any website make
+      credentialed requests to the server — a classic account-takeover enabler.
+    whatItChecks: >
+      Looks for `allow_origins=["*"]` (FastAPI/Flask/Express CORS config) in
+      code.
+    falsePositiveNote: >
+      Some APIs are intentionally public (no cookies/session state) and a
+      wildcard without credentials is low risk. The combination of wildcard
+      AND credentials is the dangerous one — check the accompanying config.
+    consequence: >
+      A malicious page can call the API with the user's credentials, reading
+      or changing data the user never consented to expose.
+    fix: >
+      Replace `*` with the specific origins you trust, and don't combine a
+      wildcard with allow_credentials=true.
+
+  - id: SENSITIVE_DATA
+    title: "Sensitive Personal Documents Committed to the Repository"
+    article: "Article 9 (Risk Management) & Article 15 (Cybersecurity)"
+    severity: "HIGH"
+    fileTypes: []
+    logic: "sensitive_files"
+    sensitiveNamePatterns:
+      - "passport"
+      - "bank.?statement"
+      - "credit.?report"
+      - "credit.?info"
+      - "payslip|pay.?slip"
+      - "tax.?statement|tax_1040|f1040|1040"
+      - "utility.?bill"
+      - "identity.?doc"
+      - "pancard|pan_card|aadhaar|ssn|social.?security"
+      - "salary.?slip"
+      - "kyc"
+    sensitiveExtensions:
+      - ".pdf"
+      - ".png"
+      - ".jpg"
+      - ".jpeg"
+      - ".docx"
+      - ".doc"
+      - ".xlsx"
+      - ".csv"
+      - ".pkl"
+      - ".faiss"
+      - ".npy"
+    description: >
+      Files whose names look like personal identity or financial documents
+      (passport, bank statement, credit report, payslip, tax return) are
+      present in the repository. Committed like this, customer data becomes
+      part of version-control history and every clone of the repo.
+    whatItChecks: >
+      Lists non-code files (PDFs, images, spreadsheets, serialized stores)
+      whose filenames match identity or financial-document patterns.
+      Content is never read — only names are matched.
+    falsePositiveNote: >
+      Name-based, so a file could be a redacted sample or synthetic fixture.
+      Sample data is fine in a sandbox, but real personal documents must not
+      live in a repo. Verify what these files actually contain.
+    consequence: >
+      Personal data (identity documents, tax returns, bank details) exposed to
+      anyone with repository access — a serious data-protection and
+      cybersecurity exposure.
+    fix: >
+      Remove the files from the repo and its history, store them in a
+      dedicated secure location, and add the folder to .gitignore so they
+      can't be committed again.
+
+  - id: UNSAFE_DESERIALIZE
+    title: "Unsafe Deserialization Call"
+    article: "Article 15 (Cybersecurity)"
+    severity: "HIGH"
+    fileTypes: ["code"]
+    patterns:
+      # pickle executes arbitrary code on untrusted input — no safe variant.
+      - "pickle\\.loads?\\s*\\("
+      # torch.load WITHOUT weights_only=True. The negative lookahead exempts
+      # the known-safe argument form anywhere in the call, multiline included.
+      - "torch\\.load\\s*\\((?![^)]*weights_only\\s*=\\s*True)[^)]*\\)"
+      # yaml.load WITHOUT any SafeLoader mention in the call.
+      - "yaml\\.load\\s*\\((?![^)]*SafeLoader)[^)]*\\)"
+      # eval/exec over request-derived or interactive input.
+      - "\\b(?:eval|exec)\\s*\\([^)]*(?:request|form|args|query|params|cookies|headers|input\\s*\\()[^)]*\\)"
+    description: >
+      A deserialization or dynamic-execution call was found in an unsafe
+      form. A crafted payload — for example a poisoned model file — can
+      execute arbitrary code with the application's privileges at load time.
+    whatItChecks: >
+      Looks for pickle loads, torch.load without weights_only=True,
+      yaml.load without a safe loader, and eval/exec over external input.
+      Known-safe argument forms are exempted inside the patterns themselves.
+    falsePositiveNote: >
+      Context-dependent: pickle and unguarded torch loads are only safe on
+      fully trusted local files, and eval/exec matches may be test or
+      tooling code. Verify what data actually reaches the call.
+    consequence: >
+      A malicious file or input reaching one of these calls runs attacker
+      code with the application's privileges.
+    fix: >
+      Load models with weights_only=True, parse YAML with SafeLoader, avoid
+      pickle for untrusted data, and replace eval/exec with structured
+      parsing of validated input.
+
+  - id: ERROR_LEAKAGE
+    title: "Exception Detail Exposed in API Response"
+    article: "Article 15 (Cybersecurity)"
+    severity: "MEDIUM"
+    fileTypes: ["code"]
+    patterns:
+      - "detail\\s*=\\s*str\\s*\\("
+      - "\\berr\\.(?:stack|message)\\b"
+      - "str\\s*\\(\\s*e(?:rror|xc)?\\s*\\)"
+    # Response-context gate: only flag where the file actually builds
+    # client-facing responses. str(e) in pure logging or middleware code
+    # without these markers stays silent.
+    contextPatterns:
+      - "HTTPException"
+      - "JsonResponse"
+      - "jsonify"
+      - "res\\.(send|json|status)"
+      - "Response\\("
+    description: >
+      An exception object or message is interpolated directly into a
+      client-facing error response. Stack traces and internal messages help
+      attackers map the system.
+    whatItChecks: >
+      Looks for FastAPI/Flask/Express-style error responses carrying raw
+      exception text, gated on response-building constructs in the file.
+    falsePositiveNote: >
+      Verify the response reaches clients — server-side-only logging of the
+      same exception text is fine and will still match if response code
+      happens to share the file.
+    consequence: >
+      Internal paths, dependency versions, and failure modes leak to anyone
+      who can trigger an error.
+    fix: >
+      Return a generic error message and correlation ID to clients, and log
+      the full exception server-side only.
+
+  - id: SAFETY_BYPASS
+    title: "Safety/Validation Check Explicitly Disabled"
+    article: "Article 14 (Human Oversight) & Article 9 (Risk Management)"
+    severity: "HIGH"
+    fileTypes: ["code"]
+    logic: "bypass_flag_near_action"
+    # Shared taxonomy, same file as the proximity rules (Phase 4 mechanism).
+    actionsRef: "high_risk_actions"
+    # Generic bypass-flag shapes only — no app-specific names. Compiled
+    # case-insensitively by the scanner, covering True/true/False/false.
+    bypassPatterns:
+      - "\\brequire\\w*\\s*[:=]\\s*(?:False|false)\\b"
+      - "\\bskip_\\w+\\s*[:=]\\s*(?:True|true)\\b"
+      - "\\bbypass_\\w+\\s*[:=]\\s*(?:True|true)\\b"
+      - "\\bvalidat(?:e|ion)\\w*\\s*[:=]\\s*(?:False|false)\\b"
+    proximityLines: 15
+    description: >
+      A flag that disables a required check (a require_*, skip_*, bypass_*,
+      or validate_* flag switched off) sits near a high-risk action from
+      the shared taxonomy. Disabling the check that was supposed to gate
+      the action removes the oversight the safety case depends on.
+    whatItChecks: >
+      Finds a switched-off bypass flag and looks for a real taxonomy action
+      call (not a definition) in the same function-scoped window.
+    falsePositiveNote: >
+      A flag set to off may be intentional and time-boxed (a debug switch
+      with an expiry), or the nearby action may be covered by a check the
+      scanner cannot see. Verify intent before treating as a gap.
+    consequence: >
+      The safeguard named by the flag is off exactly where the risky action
+      runs — oversight exists on paper but not in the code path.
+    fix: >
+      Either remove the bypass, or record its justification, owner, and
+      expiry somewhere reviewable, and re-enable the check by default.
