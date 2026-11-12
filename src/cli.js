@@ -129,7 +129,8 @@ async function main() {
       version: pkg.version,
       scannedDirectory: opts.rootDir,
       filesScanned: scanner.filesScanned,
-      filesSkipped: scanner.skippedFiles
+      filesSkipped: scanner.skippedFiles,
+      astAvailable: scanner.astAvailable
     });
 
     const band = getBand(score, findings);

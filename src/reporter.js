@@ -4,6 +4,30 @@ const path = require("path");
 
 const SEVERITY_PENALTY = { CRITICAL: 25, HIGH: 15, MEDIUM: 5, LOW: 2 };
 
+// A fixed, non-negotiable statement of what this scan can and cannot say.
+// It is emitted in report.json and at the top of report.html so the
+// applicability boundary travels with the artefact, not only with the paper.
+const HIGH_RISK_ARTICLES = ["Article 9", "Article 12", "Article 14", "Article 15"];
+const APPLICABILITY = {
+  isComplianceDetermination: false,
+  highRiskStatusAssessed: false,
+  roleDetermined: false,
+  roleNote: "Provider and deployer duties differ. This scan does not determine which role the scanned repository has.",
+  highRiskArticles: HIGH_RISK_ARTICLES,
+  highRiskOnlyNote:
+    "Articles 9, 12, 14 and 15 apply only to AI systems classified as high-risk under Article 6 and Annex I or Annex III. This scan does not perform that classification.",
+  highRiskObligationsApplyFrom: {
+    annexIII: "2027-12-02",
+    annexI: "2028-08-02",
+    source:
+      "Article 113(c), Regulation (EU) 2024/1689, as amended by Regulation (EU) 2026/1744"
+  },
+  articleReferencesNote:
+    "Article references are review prompts, not compliance findings. A finding means a pattern was present; it does not establish a breach.",
+  detectionMethodNote:
+    "Per-finding method is reported. 'ast-confirmed' means a same-function structural check was available; it does not cover the callee or other files."
+};
+
 // Confidence weighting: a finding's severity penalty is scaled by how it was
 // produced. ast-confirmed always counts fully; pattern-only findings on
 // known-noisy rules count half; everything else counts fully. Bands still
@@ -55,10 +79,13 @@ function buildJSON(findings, score, meta) {
     score,
     riskRating: getBand(score, findings).label,
     riskRatingWhy: ratingExplanation(findings).why,
+    astAvailable: meta.astAvailable === undefined ? null : !!meta.astAvailable,
+    applicability: APPLICABILITY,
     findings,
     disclaimer:
       "This is a preliminary, automated, local scan. It is not a certified " +
-      "compliance audit and does not constitute legal advice."
+      "compliance audit and does not constitute legal advice. It does not " +
+      "determine whether the scanned system is high-risk under the EU AI Act."
   };
 }
 
@@ -165,7 +192,7 @@ function groupFindings(findings) {
 }
 
 const RISK_AREAS = [
-  { name: "Identity & Access", articles: "Art. 15 · Art. 9", ids: ["IDENTITY_KEY", "IAM_WILDCARD", "HTTP_NO_AUTH", "CORS_WILDCARD", "SENSITIVE_DATA", "UNSAFE_DESERIALIZE", "ERROR_LEAKAGE"] },
+  { name: "Identity & Access", articles: "Art. 15 · Art. 10", ids: ["IDENTITY_KEY", "IAM_WILDCARD", "HTTP_NO_AUTH", "CORS_WILDCARD", "SENSITIVE_DATA", "UNSAFE_DESERIALIZE", "ERROR_LEAKAGE"] },
   { name: "Human Oversight", articles: "Art. 14", ids: ["NO_HUMAN_LOOP", "AUTO_DECISION", "SAFETY_BYPASS"] },
   { name: "Audit Trail & Logging", articles: "Art. 12", ids: ["NO_LOGGING"] },
   { name: "Transparency", articles: "Art. 50", ids: ["NO_AI_DISCLOSURE"] }
@@ -302,6 +329,12 @@ function buildHTML(findings, score, meta, reportData) {
   .section-title { font-size: 1.02rem; font-weight: 700; margin: 0 0 12px; }
   .section-title .sub { color: #8a94a0; font-weight: 500; font-size: .82rem; }
   .summary-card { background: #fff; border-radius: 14px; padding: 20px 24px; line-height: 1.6; color: #3d4655; box-shadow: 0 4px 16px rgba(16,24,40,.05); border-left: 4px solid ${band.color}; }
+  .applicability { background: #fff8e6; border: 1px solid #f0d9a8; border-radius: 14px; padding: 18px 22px; color: #4a3b20; line-height: 1.55; }
+  .applicability h2 { margin: 0 0 8px; font-size: .98rem; color: #3a2d16; }
+  .applicability ul { margin: 0; padding-left: 20px; }
+  .applicability li { margin: 5px 0; font-size: .88rem; }
+  .applicability strong { color: #3a2d16; }
+  .method-note { margin-top: 9px; padding-top: 8px; border-top: 1px dashed #e2c98f; font-size: .82rem; color: #6b5832; }
   .breakdown { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
   .cat-card { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 4px 16px rgba(16,24,40,.05); border: 1px solid #edf0f3; }
   .cat-name { font-weight: 700; font-size: .92rem; }
@@ -377,13 +410,31 @@ function buildHTML(findings, score, meta, reportData) {
       </div>
     </div>
 
+    <section class="applicability">
+      <h2>What this report is &mdash; and is not</h2>
+      <ul>
+        <li><strong>Not a compliance determination.</strong> This is a static pattern scan. It is not a certified audit, a legal opinion, or evidence of compliance with the EU AI Act or any other law.</li>
+        <li><strong>High-risk status not assessed.</strong> Articles 9, 12, 14 and 15 apply only to AI systems classified as high-risk under Article 6 and Annex I or Annex III. This scan does not perform that classification.</li>
+        <li><strong>Role not determined.</strong> Provider and deployer duties differ. This scan does not determine which role the scanned repository has.</li>
+        <li><strong>Entry into application.</strong> The high-risk obligations above apply from ${APPLICABILITY.highRiskObligationsApplyFrom.annexIII} for Annex III systems and ${APPLICABILITY.highRiskObligationsApplyFrom.annexI} for Annex I systems (${APPLICABILITY.highRiskObligationsApplyFrom.source}).</li>
+        <li><strong>Article references are review prompts, not findings of breach.</strong> A finding means a pattern was present; it does not establish that an obligation was breached.</li>
+      </ul>
+      <div class="method-note">${
+        meta.astAvailable === false
+          ? "Structural AST checks were unavailable on this machine (Python not found). Findings are pattern/proximity heuristics only."
+          : meta.astAvailable === true
+            ? "Structural AST checks were available for Python. They cover the enclosing function only, never the callee or other files."
+            : "Structural check availability was not recorded."
+      }</div>
+    </section>
+
     <section>
       <h2 class="section-title">In plain language</h2>
       <div class="summary-card">${summary}</div>
     </section>
 
     <section>
-      <h2 class="section-title">Where we looked <span class="sub">— four risk areas the EU AI Act covers</span></h2>
+      <h2 class="section-title">Where we looked <span class="sub">— the checks in this scan</span></h2>
       <div class="breakdown">${breakdown}</div>
     </section>
 

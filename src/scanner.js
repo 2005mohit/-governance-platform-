@@ -171,6 +171,10 @@ class Scanner {
     // Probed Python command for the Phase 3 AST helper: null = unprobed,
     // false = unavailable (fall back to proximity), otherwise the command.
     this.pythonCmd = null;
+    this.pythonWarned = false;
+    // Capability flag reported in JSON: true = an interpreter answered a
+    // --version probe, false = no Python, null = not probed yet.
+    this.astAvailable = null;
   }
 
   // Loads `<ref>.yaml` from the rule pack's directory and substitutes its
@@ -210,6 +214,9 @@ class Scanner {
 
   async scan() {
     console.log("Scanning for identity, oversight, and audit-trail patterns...");
+    // Probe once up front so the report can state whether structural checks
+    // were available even when the repository contains no Python files.
+    this.ensurePython();
     const files = await this.walkDir(this.rootDir);
     for (const file of files) {
       await this.analyzeFile(file);
@@ -566,6 +573,16 @@ class Scanner {
           const probe = spawnSync(cmd, ["--version"], { encoding: "utf8", timeout: 10000 });
           if (probe.status === 0) { this.pythonCmd = cmd; break; }
         } catch { /* try the next candidate */ }
+      }
+      this.astAvailable = Boolean(this.pythonCmd);
+      if (!this.astAvailable && !this.pythonWarned) {
+        // Say it once, on stderr, so a clean JSON result is not mistaken for
+        // a structurally checked one. The report carries the same flag.
+        console.warn(
+          "  (Python not found: structural AST checks are unavailable; " +
+          "affected findings fall back to proximity heuristics)"
+        );
+        this.pythonWarned = true;
       }
     }
     return this.pythonCmd || null;

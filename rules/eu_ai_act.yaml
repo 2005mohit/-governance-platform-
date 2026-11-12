@@ -34,7 +34,7 @@ rules:
 
   - id: IAM_WILDCARD
     title: "Overly Broad IAM Permission (Wildcard Action/Resource)"
-    article: "Article 15 (Cybersecurity) & Article 9 (Risk Management)"
+    article: "Article 15 (Cybersecurity)"
     severity: "CRITICAL"
     fileTypes: ["iac"]
     patterns:
@@ -283,7 +283,7 @@ rules:
 
   - id: SENSITIVE_DATA
     title: "Sensitive Personal Documents Committed to the Repository"
-    article: "Article 9 (Risk Management) & Article 15 (Cybersecurity)"
+    article: "Article 10 (Data and Data Governance); GDPR"
     severity: "HIGH"
     fileTypes: []
     logic: "sensitive_files"
@@ -406,7 +406,7 @@ rules:
 
   - id: SAFETY_BYPASS
     title: "Safety/Validation Check Explicitly Disabled"
-    article: "Article 14 (Human Oversight) & Article 9 (Risk Management)"
+    article: "Article 14 (Human Oversight)"
     severity: "HIGH"
     fileTypes: ["code"]
     logic: "bypass_flag_near_action"
