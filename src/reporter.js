@@ -20,20 +20,20 @@ const APPLICABILITY = {
     annexIII: "2027-12-02",
     annexI: "2028-08-02",
     source:
-      "Article 113(c), Regulation (EU) 2024/1689, as amended by Regulation (EU) 2026/1744"
+      "Article 113, third paragraph, point (c), Regulation (EU) 2024/1689, as amended by Regulation (EU) 2026/1744"
   },
   articleReferencesNote:
     "Article references are review prompts, not compliance findings. A finding means a pattern was present; it does not establish a breach.",
   detectionMethodNote:
-    "Per-finding method is reported. 'ast-confirmed' means a same-function structural check was available; it does not cover the callee or other files."
+    "Per-finding method is reported. 'ast-same-function' means a structural check of the enclosing function was available; it does not cover the callee or other files."
 };
 
 // Confidence weighting: a finding's severity penalty is scaled by how it was
-// produced. ast-confirmed always counts fully; pattern-only findings on
+// produced. ast-same-function always counts fully; pattern-only findings on
 // known-noisy rules count half; everything else counts fully. Bands still
 // key off worst severity (see getBand), so weighting moves the score only.
 const CONFIDENCE_WEIGHT = {
-  methodFullWeight: ["ast-confirmed"],
+  methodFullWeight: ["ast-same-function"],
   reducedWeightRules: { NO_AI_DISCLOSURE: 0.5, AUTO_DECISION: 0.5 },
 };
 
@@ -156,7 +156,7 @@ function buildExposureBadge(exposure) {
 // cards stay at four content pieces while the method stays visible in HTML.
 // The called-helper caveat lives in the NO_HUMAN_LOOP fix parenthetical.
 function buildMethodBadge(method) {
-  if (method === "ast-confirmed") return `<span class="tag-method">AST-checked</span>`;
+  if (method === "ast-same-function") return `<span class="tag-method">AST same-function</span>`;
   if (method === "proximity-heuristic") return `<span class="tag-method">Proximity heuristic</span>`;
   return "";
 }

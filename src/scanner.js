@@ -422,7 +422,7 @@ class Scanner {
           if (rule.receiverCheck && filePath.endsWith(".py")) {
             const verdict = this.getDecisionReceiverVerdict(rawContent, lineNumber);
             if (verdict && verdict.received) break; // handler, not an auto-decision
-            if (verdict) method = "ast-confirmed"; // structurally confirmed as computed
+            if (verdict) method = "ast-same-function"; // structurally confirmed in the same function
           }
           this.addFinding(rule, filePath, safeLine, lineNumber, "Pattern Match", [], null, method);
           break; // one finding per rule per file is enough for a snapshot
@@ -514,7 +514,7 @@ class Scanner {
       astVerdicts = this.getAstVerdicts(rawContent, candidates, rule.approvalMarkers);
     }
     const methodFor = (lineNumber) =>
-      astVerdicts && astVerdicts.has(lineNumber) ? "ast-confirmed" : "proximity-heuristic";
+      astVerdicts && astVerdicts.has(lineNumber) ? "ast-same-function" : "proximity-heuristic";
 
     // First decisive outcome wins (one finding per rule per file). A marker
     // that proximity accepts but AST finds ungated is Phase 3's new case:
@@ -522,7 +522,7 @@ class Scanner {
     for (const c of candidates) {
       const verdict = astVerdicts ? astVerdicts.get(c.lineNumber) : undefined;
       if (!c.hasMarker) {
-        if (verdict && verdict.gated) continue; // AST-confirmed gate beyond the window
+        if (verdict && verdict.gated) continue; // AST same-function gate beyond the window
         const lines = rawContent.split("\n");
         const line = (lines[c.lineNumber - 1] || "").trim().substring(0, 120);
         this.addFinding(rule, filePath, line, c.lineNumber, `Logic: ${reasonSuffix}`, [], toolExposure, methodFor(c.lineNumber));
@@ -531,7 +531,7 @@ class Scanner {
       if (verdict && !verdict.gated) {
         const lines = rawContent.split("\n");
         const line = (lines[c.lineNumber - 1] || "").trim().substring(0, 120);
-        this.addFinding(rule, filePath, line, c.lineNumber, `Logic: ${reasonSuffix} (approval present but not gating)`, [], toolExposure, "ast-confirmed");
+        this.addFinding(rule, filePath, line, c.lineNumber, `Logic: ${reasonSuffix} (approval present but not gating)`, [], toolExposure, "ast-same-function");
         return;
       }
     }
@@ -718,7 +718,7 @@ class Scanner {
       severity: rule.severity,
       toolExposure,
       // Phase 3: which detection method produced this finding. Only proximity
-      // rules set it ("ast-confirmed" vs "proximity-heuristic"); pattern,
+      // rules set it ("ast-same-function" vs "proximity-heuristic"); pattern,
       // disclosure and project-level findings carry null.
       method,
       file: relativePath,

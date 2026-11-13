@@ -227,7 +227,7 @@ rules:
     fileTypes: ["code"]
     # FIX 1: before flagging, the scanner structurally checks (.py only)
     # whether this assignment RECORDS an incoming human decision (review
-    # handler — suppressed) or COMPUTES one (flagged, method ast-confirmed).
+    # handler — suppressed) or COMPUTES one (flagged, method ast-same-function).
     receiverCheck: true
     patterns:
       - "(?:decision|result|outcome|verdict|application)\\.?\\[?['\"]?status['\"]?\\]?\\s*[:=]\\s*['\"](approved|rejected|denied|accepted|declined)['\"]"

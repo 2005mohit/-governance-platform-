@@ -81,8 +81,8 @@ Articles 9, 12, 14 and 15 apply only to systems classified as high-risk under
 Article 6 and Annex I or Annex III; this scan does not perform that
 classification and does not determine whether the repository is a provider or
 a deployer. The high-risk obligations apply from 2 December 2027 (Annex III)
-and 2 August 2028 (Annex I) — Article 113(c), Regulation (EU) 2024/1689, as
-amended by Regulation (EU) 2026/1744.
+and 2 August 2028 (Annex I) — Article 113, third paragraph, point (c),
+Regulation (EU) 2024/1689, as amended by Regulation (EU) 2026/1744.
 
 It does **not** check: whether an approval step is a real human check or a
 rubber stamp, whether logs actually capture real runtime events, your live
@@ -102,7 +102,7 @@ boundary on both sides), so a guard that lives in the called function's own
 body is invisible from the caller's side. If the flagged call invokes a
 helper that performs the approval/logging itself, verify the helper and
 treat the finding as informational. The same blindness applies to the
-structural (`ast-confirmed`) verdicts for `NO_HUMAN_LOOP`: they cover the
+structural (`ast-same-function`) verdicts for `NO_HUMAN_LOOP`: they cover the
 enclosing function only, never the callee.
 
 ## License
