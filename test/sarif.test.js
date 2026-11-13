@@ -115,13 +115,50 @@ function main() {
     assert.ok(driver.rules.length > 0, `${name}: driver.rules should not be empty`);
     assert.ok(!("informationUri" in driver), `${name}: informationUri must be omitted when package.json has no repository URL`);
     for (const rule of driver.rules) {
+      const expectedName = rule.id
+        .toLowerCase()
+        .split(/[^a-z0-9]+/)
+        .filter(Boolean)
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join("");
+      assert.strictEqual(rule.name, expectedName, `${name}: rule name must be a stable identifier derived from the id`);
       assert.ok(rule.id && rule.name && rule.shortDescription.text);
       assert.ok(["error", "warning", "note"].includes(rule.defaultConfiguration.level));
       assert.ok(rule.properties.article && rule.properties.severity);
       assert.ok(!("providerOrDeployer" in rule.properties), "pack has no providerOrDeployer");
       assert.ok(!("highRiskOnly" in rule.properties), "pack has no highRiskOnly");
     }
+    assert.strictEqual(
+      driver.rules.find((rule) => rule.id === "IDENTITY_KEY").name,
+      "IdentityKey",
+      `${name}: IDENTITY_KEY should map to IdentityKey`
+    );
     checks++;
+
+    // report.json carries confidence and confidenceWeight on every finding;
+    // SARIF properties.confidence must equal the JSON numeric value.
+    assert.strictEqual(sarif.runs[0].results.length, json.findings.length);
+    for (let i = 0; i < json.findings.length; i++) {
+      const finding = json.findings[i];
+      const result = sarif.runs[0].results[i];
+      assert.ok(["high", "medium"].includes(finding.confidence), `${name}: finding confidence label`);
+      assert.strictEqual(
+        finding.confidence,
+        finding.confidenceWeight >= 1 ? "high" : "medium",
+        `${name}: confidence label should match confidenceWeight`
+      );
+      assert.strictEqual(
+        result.properties.confidence,
+        finding.confidenceWeight,
+        `${name}: SARIF confidence must equal report.json confidenceWeight`
+      );
+      if (finding.method) {
+        assert.strictEqual(result.properties.method, finding.method, `${name}: SARIF method`);
+      } else {
+        assert.ok(!("method" in result.properties), `${name}: method must be omitted when the finding has none`);
+      }
+    }
+    checks += 2;
 
     const runProperties = sarif.runs[0].properties;
     assert.deepStrictEqual(runProperties.applicability, json.applicability);
@@ -193,12 +230,41 @@ function main() {
     checks += 3;
   }
 
+  // 5b. Shuffling the input order must not change any finding's fingerprint.
+  {
+    const rule = { id: "SHUF", title: "Shuffle", article: "Article X", severity: "MEDIUM" };
+    const makeFinding = (line, snippet) => ({
+      id: "SHUF",
+      title: "Shuffle",
+      article: "Article X",
+      severity: "MEDIUM",
+      file: "src/shuffle.py",
+      line,
+      snippet,
+      method: "proximity-heuristic"
+    });
+    const original = [makeFinding(10, "alpha()"), makeFinding(20, "beta()"), makeFinding(30, "gamma()")];
+    const byMessage = (sarif) =>
+      Object.fromEntries(
+        sarif.runs[0].results.map((result) => [
+          result.message.text,
+          result.partialFingerprints["aiRiskSnapshot/v1"]
+        ])
+      );
+    const canonical = byMessage(buildSARIF(original, { scannedDirectory: ROOT, rules: [rule] }));
+    const shuffled = byMessage(
+      buildSARIF([original[2], original[0], original[1]], { scannedDirectory: ROOT, rules: [rule] })
+    );
+    assert.deepStrictEqual(shuffled, canonical, "fingerprints changed when input order was shuffled");
+    checks++;
+  }
+
   // 6. Level mapping, including LOW -> note via a synthetic finding.
   {
-    const rule = { id: "LOWRULE", title: "Low", article: "Article X", severity: "LOW" };
+    const rule = { id: "LOW_RULE", title: "Low", article: "Article X", severity: "LOW" };
     const sarif = buildSARIF(
       [{
-        id: "LOWRULE",
+        id: "LOW_RULE",
         title: "Low",
         article: "Article X",
         severity: "LOW",
@@ -210,7 +276,9 @@ function main() {
       { scannedDirectory: ROOT, rules: [rule] }
     );
     assert.strictEqual(sarif.runs[0].results[0].level, "note");
-    checks++;
+    assert.ok(!("method" in sarif.runs[0].results[0].properties), "method must be omitted when absent");
+    assert.strictEqual(sarif.runs[0].tool.driver.rules[0].name, "LowRule");
+    checks += 2;
   }
 
   // 7. --format sarif writes only report.sarif.

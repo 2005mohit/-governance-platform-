@@ -195,3 +195,8 @@ enclosing function only, never the callee.
 ## License
 
 MIT
+
+The vendored SARIF 2.1.0 schema under `test/fixtures/sarif/` is published by
+the OASIS SARIF Technical Committee under its own terms (OASIS RF on RAND
+Terms Mode), reproduced in `test/fixtures/sarif/SARIF-LICENSE.md`. It is a
+test fixture only and is not shipped in the npm package.

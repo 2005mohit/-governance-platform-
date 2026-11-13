@@ -93,6 +93,19 @@ function findingFingerprint(ruleId, uri, snippet, duplicateIndex) {
     .digest("hex");
 }
 
+// SARIF report-rule names are stable identifiers, not prose. Derive one from
+// the rule id so a rule keeps the same name across releases even if its human
+// title is reworded: IDENTITY_KEY -> IdentityKey.
+function sarifRuleName(id) {
+  const name = String(id || "")
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join("");
+  return name || String(id || "Rule");
+}
+
 function buildSarifRule(rule) {
   const properties = {
     article: rule.article,
@@ -107,7 +120,7 @@ function buildSarifRule(rule) {
   const title = rule.title || rule.id;
   return {
     id: rule.id,
-    name: title,
+    name: sarifRuleName(rule.id),
     shortDescription: { text: title },
     defaultConfiguration: { level: sarifLevel(rule.severity) },
     properties
@@ -140,18 +153,53 @@ function buildSARIF(findings, meta = {}) {
 
   const rules = ruleDefs.map(buildSarifRule);
   const ruleIndexById = new Map(ruleDefs.map((rule, index) => [rule.id, index]));
-  const duplicateCounts = new Map();
 
-  const results = findings.map((finding) => {
+  // Assign duplicate-fingerprint counters in a canonical order (file, line,
+  // rule id, then snippet as a final tie-break) so the same findings produce
+  // the same fingerprints regardless of the order they were discovered in.
+  const ordered = findings.map((finding, index) => ({ finding, index }));
+  ordered.sort((a, b) => {
+    const fa = String(a.finding.file || "");
+    const fb = String(b.finding.file || "");
+    if (fa !== fb) return fa < fb ? -1 : 1;
+    const la = startLine(a.finding.line);
+    const lb = startLine(b.finding.line);
+    if (la !== lb) return la - lb;
+    const ia = String(a.finding.id || "");
+    const ib = String(b.finding.id || "");
+    if (ia !== ib) return ia < ib ? -1 : 1;
+    const sa = normalizedSnippet(a.finding.snippet);
+    const sb = normalizedSnippet(b.finding.snippet);
+    if (sa !== sb) return sa < sb ? -1 : 1;
+    return a.index - b.index;
+  });
+
+  const duplicateCounts = new Map();
+  const fingerprintsByIndex = new Map();
+  for (const { finding, index } of ordered) {
     const uri = relativeArtifactUri(finding.file, meta.scannedDirectory);
     const snippet = normalizedSnippet(finding.snippet);
     const duplicateKey = `${finding.id}\u0000${uri}\u0000${snippet}`;
     const duplicateIndex = duplicateCounts.get(duplicateKey) || 0;
     duplicateCounts.set(duplicateKey, duplicateIndex + 1);
+    fingerprintsByIndex.set(
+      index,
+      findingFingerprint(finding.id, uri, snippet, duplicateIndex)
+    );
+  }
+
+  const results = findings.map((finding, index) => {
+    const uri = relativeArtifactUri(finding.file, meta.scannedDirectory);
+    const snippet = normalizedSnippet(finding.snippet);
 
     const text = snippet
       ? `${finding.title || finding.id}: ${snippet}`
       : String(finding.title || finding.id);
+
+    // method is present only when the scanner actually recorded one. A null
+    // value would claim the field was measured, which is not true.
+    const properties = { confidence: findingConfidenceWeight(finding) };
+    if (finding.method) properties.method = finding.method;
 
     return {
       ruleId: finding.id,
@@ -166,12 +214,9 @@ function buildSARIF(findings, meta = {}) {
           }
         }
       ],
-      properties: {
-        method: finding.method || null,
-        confidence: confidenceWeight(finding)
-      },
+      properties,
       partialFingerprints: {
-        "aiRiskSnapshot/v1": findingFingerprint(finding.id, uri, snippet, duplicateIndex)
+        "aiRiskSnapshot/v1": fingerprintsByIndex.get(index)
       }
     };
   });
@@ -215,6 +260,30 @@ function confidenceWeight(finding) {
     return CONFIDENCE_WEIGHT.reducedWeightRules[finding.id];
   }
   return 1.0;
+}
+
+// The numeric weight is what moves the score. The label is the same judgement
+// in words so report consumers do not have to know the weighting table.
+function confidenceLabel(weight) {
+  return weight >= 1 ? "high" : "medium";
+}
+
+function annotateFindings(findings) {
+  return findings.map((finding) => {
+    const weight = confidenceWeight(finding);
+    return {
+      ...finding,
+      confidence: confidenceLabel(weight),
+      confidenceWeight: weight
+    };
+  });
+}
+
+// Prefer the annotated value so JSON and SARIF cannot drift apart.
+function findingConfidenceWeight(finding) {
+  return typeof finding.confidenceWeight === "number"
+    ? finding.confidenceWeight
+    : confidenceWeight(finding);
 }
 
 function calculateScore(findings) {
@@ -681,7 +750,10 @@ function generateReport(findings, outputDir, meta, options = {}) {
   const formats = new Set(
     Array.isArray(options.formats) ? options.formats : ["json", "html", "sarif"]
   );
-  const score = calculateScore(findings);
+  // Annotate once so report.json and report.sarif carry identical confidence
+  // values. This is the only finding-level addition in item 2's fix-up.
+  const annotatedFindings = annotateFindings(findings);
+  const score = calculateScore(annotatedFindings);
   let jsonPath = null;
   let htmlPath = null;
   let sarifPath = null;
@@ -689,7 +761,7 @@ function generateReport(findings, outputDir, meta, options = {}) {
   // HTML embeds the JSON report for its copy button, so build the object even
   // when report.json itself was not requested.
   const jsonReport = formats.has("json") || formats.has("html")
-    ? buildJSON(findings, score, meta)
+    ? buildJSON(annotatedFindings, score, meta)
     : null;
 
   if (formats.has("json")) {
@@ -698,11 +770,11 @@ function generateReport(findings, outputDir, meta, options = {}) {
   }
   if (formats.has("html")) {
     htmlPath = path.join(outputDir, "report.html");
-    fs.writeFileSync(htmlPath, buildHTML(findings, score, meta, jsonReport));
+    fs.writeFileSync(htmlPath, buildHTML(annotatedFindings, score, meta, jsonReport));
   }
   if (formats.has("sarif")) {
     sarifPath = path.join(outputDir, "report.sarif");
-    fs.writeFileSync(sarifPath, JSON.stringify(buildSARIF(findings, meta), null, 2));
+    fs.writeFileSync(sarifPath, JSON.stringify(buildSARIF(annotatedFindings, meta), null, 2));
   }
 
   return { score, jsonPath, htmlPath, sarifPath };
