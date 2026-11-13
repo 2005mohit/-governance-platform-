@@ -16,6 +16,10 @@
   `ast-same-function`. It still means the structural check covered the
   enclosing function only, never the callee or other files. Update any
   downstream consumer that matches on the old string.
+- **Breaking:** declining consent — or running non-interactively without
+  `--yes` — now exits 2 (previously 1). No scan is run in either case.
+- **Breaking:** unknown options and extra positional arguments are rejected
+  with exit 2 (previously ignored or overwritten).
 - The applicability source string now cites Article 113, third paragraph,
   point (c), of Regulation (EU) 2024/1689, as amended by Regulation (EU)
   2026/1744.
