@@ -5,6 +5,7 @@
 // dependency and makes no network calls.
 const assert = require("assert");
 const { spawnSync } = require("child_process");
+const crypto = require("crypto");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
@@ -149,8 +150,17 @@ function main() {
       );
       assert.strictEqual(
         result.properties.confidence,
+        finding.confidence,
+        `${name}: SARIF confidence label must equal report.json confidence`
+      );
+      assert.strictEqual(
+        result.properties.confidenceWeight,
         finding.confidenceWeight,
-        `${name}: SARIF confidence must equal report.json confidenceWeight`
+        `${name}: SARIF confidenceWeight must equal report.json confidenceWeight`
+      );
+      assert.ok(
+        !result.locations[0].physicalLocation.artifactLocation.uri.includes("\\"),
+        `${name}: SARIF uri must use forward slashes`
       );
       if (finding.method) {
         assert.strictEqual(result.properties.method, finding.method, `${name}: SARIF method`);
@@ -257,6 +267,49 @@ function main() {
     );
     assert.deepStrictEqual(shuffled, canonical, "fingerprints changed when input order was shuffled");
     checks++;
+  }
+
+  // 5c. Nested paths use forward slashes in the URI, and the fingerprint is
+  //     computed from that forward-slash URI. report.json is left OS-native.
+  {
+    const nestedRoot = uniquePath("nested");
+    fs.mkdirSync(path.join(nestedRoot, "a", "b"), { recursive: true });
+    fs.writeFileSync(path.join(nestedRoot, "a", "b", "c.py"), "pickle.loads(data)\n");
+    const outputDir = uniquePath("nested-out");
+    const result = runCli([nestedRoot, "--yes", "--format", "all", "-o", outputDir]);
+    assert.strictEqual(result.status, 0, `nested scan failed:\n${result.stdout}\n${result.stderr}`);
+    const sarif = readJson(path.join(outputDir, "report.sarif"));
+    const json = readJson(path.join(outputDir, "report.json"));
+
+    const nestedResult = sarif.runs[0].results.find((r) => r.ruleId === "UNSAFE_DESERIALIZE");
+    assert.ok(nestedResult, "nested fixture should fire UNSAFE_DESERIALIZE");
+    assert.strictEqual(
+      nestedResult.locations[0].physicalLocation.artifactLocation.uri,
+      "a/b/c.py",
+      "nested URI must be relative and forward-slash separated"
+    );
+    for (const nested of sarif.runs[0].results) {
+      const uri = nested.locations[0].physicalLocation.artifactLocation.uri;
+      assert.ok(!uri.includes("\\"), `SARIF uri must not contain a backslash: ${uri}`);
+    }
+    const expectedFingerprint = crypto
+      .createHash("sha256")
+      .update(
+        `UNSAFE_DESERIALIZE\u0000a/b/c.py\u0000pickle.loads(data)\u00000`
+      )
+      .digest("hex");
+    assert.strictEqual(
+      nestedResult.partialFingerprints["aiRiskSnapshot/v1"],
+      expectedFingerprint,
+      "fingerprint input must use the forward-slash URI"
+    );
+    if (process.platform === "win32") {
+      assert.ok(
+        json.findings[0].file.includes("\\"),
+        "report.json keeps OS-native separators (documented, not changed here)"
+      );
+    }
+    checks += 3;
   }
 
   // 6. Level mapping, including LOW -> note via a synthetic finding.

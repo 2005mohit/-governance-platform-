@@ -197,8 +197,11 @@ function buildSARIF(findings, meta = {}) {
       : String(finding.title || finding.id);
 
     // method is present only when the scanner actually recorded one. A null
-    // value would claim the field was measured, which is not true.
-    const properties = { confidence: findingConfidenceWeight(finding) };
+    // value would claim the field was measured, which is not true. confidence
+    // is the same label as report.json; confidenceWeight is the number behind
+    // it, so consumers never have to guess which type a key holds.
+    const weight = findingConfidenceWeight(finding);
+    const properties = { confidence: confidenceLabel(weight), confidenceWeight: weight };
     if (finding.method) properties.method = finding.method;
 
     return {
