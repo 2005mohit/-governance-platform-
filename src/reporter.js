@@ -1,6 +1,8 @@
 // src/reporter.js
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
+const pkg = require("../package.json");
 
 const SEVERITY_PENALTY = { CRITICAL: 25, HIGH: 15, MEDIUM: 5, LOW: 2 };
 
@@ -27,6 +29,176 @@ const APPLICABILITY = {
   detectionMethodNote:
     "Per-finding method is reported. 'ast-same-function' means a structural check of the enclosing function was available; it does not cover the callee or other files."
 };
+
+// SARIF 2.1.0 uses error/warning/note. The mapping is intentionally the same
+// as the human report: critical and high are errors, medium is a warning, low
+// is a note.
+const SARIF_LEVEL = {
+  CRITICAL: "error",
+  HIGH: "error",
+  MEDIUM: "warning",
+  LOW: "note"
+};
+const SARIF_SCHEMA_URL =
+  "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json";
+
+function sarifLevel(severity) {
+  return SARIF_LEVEL[severity] || "warning";
+}
+
+// Only use a repository URL that is actually present in package.json. Never
+// synthesise a GitHub URL from a package name. Shorthand forms and non-URL
+// values are ignored, so informationUri stays absent rather than misleading.
+function packageRepositoryUrl() {
+  const repository = pkg.repository;
+  let url = typeof repository === "string" ? repository : repository && repository.url;
+  if (typeof url !== "string") return null;
+  url = url.trim();
+  if (url.startsWith("git+")) url = url.slice(4);
+  return /^https?:\/\//i.test(url) ? url : null;
+}
+
+// SARIF artifact URIs must be relative, use forward slashes, and be valid URI
+// references. Encode each path segment so spaces and reserved characters do
+// not make the document invalid.
+function relativeArtifactUri(file, root) {
+  let rel = String(file || "").replace(/\\/g, "/");
+  if (path.isAbsolute(file)) {
+    rel = root ? path.relative(root, file).replace(/\\/g, "/") : path.basename(file);
+  }
+  const encoded = rel
+    .split("/")
+    .filter((segment) => segment !== "")
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
+  return encoded || "unknown";
+}
+
+function startLine(line) {
+  const n = Number(line);
+  return Number.isInteger(n) && n > 0 ? n : 1;
+}
+
+function normalizedSnippet(snippet) {
+  return String(snippet || "").trim().replace(/\s+/g, " ");
+}
+
+// Fingerprints deliberately exclude the line number so ordinary edits above a
+// finding do not create a new identity. The duplicate counter keeps two
+// identical snippets in the same file distinct while remaining deterministic.
+function findingFingerprint(ruleId, uri, snippet, duplicateIndex) {
+  return crypto
+    .createHash("sha256")
+    .update(`${ruleId}\u0000${uri}\u0000${snippet}\u0000${duplicateIndex}`)
+    .digest("hex");
+}
+
+function buildSarifRule(rule) {
+  const properties = {
+    article: rule.article,
+    severity: rule.severity
+  };
+  if (Object.prototype.hasOwnProperty.call(rule, "providerOrDeployer")) {
+    properties.providerOrDeployer = rule.providerOrDeployer;
+  }
+  if (Object.prototype.hasOwnProperty.call(rule, "highRiskOnly")) {
+    properties.highRiskOnly = rule.highRiskOnly;
+  }
+  const title = rule.title || rule.id;
+  return {
+    id: rule.id,
+    name: title,
+    shortDescription: { text: title },
+    defaultConfiguration: { level: sarifLevel(rule.severity) },
+    properties
+  };
+}
+
+function buildSARIF(findings, meta = {}) {
+  // Prefer the full rule pack so ruleIndex is stable even when a rule has no
+  // finding. Fall back to the unique rules represented by the findings so the
+  // reporter remains usable without the scanner's rule list.
+  const ruleDefs = [];
+  const seen = new Set();
+  for (const rule of Array.isArray(meta.rules) ? meta.rules : []) {
+    if (!seen.has(rule.id)) {
+      ruleDefs.push(rule);
+      seen.add(rule.id);
+    }
+  }
+  for (const finding of findings) {
+    if (!seen.has(finding.id)) {
+      ruleDefs.push({
+        id: finding.id,
+        title: finding.title,
+        article: finding.article,
+        severity: finding.severity
+      });
+      seen.add(finding.id);
+    }
+  }
+
+  const rules = ruleDefs.map(buildSarifRule);
+  const ruleIndexById = new Map(ruleDefs.map((rule, index) => [rule.id, index]));
+  const duplicateCounts = new Map();
+
+  const results = findings.map((finding) => {
+    const uri = relativeArtifactUri(finding.file, meta.scannedDirectory);
+    const snippet = normalizedSnippet(finding.snippet);
+    const duplicateKey = `${finding.id}\u0000${uri}\u0000${snippet}`;
+    const duplicateIndex = duplicateCounts.get(duplicateKey) || 0;
+    duplicateCounts.set(duplicateKey, duplicateIndex + 1);
+
+    const text = snippet
+      ? `${finding.title || finding.id}: ${snippet}`
+      : String(finding.title || finding.id);
+
+    return {
+      ruleId: finding.id,
+      ruleIndex: ruleIndexById.get(finding.id),
+      level: sarifLevel(finding.severity),
+      message: { text },
+      locations: [
+        {
+          physicalLocation: {
+            artifactLocation: { uri },
+            region: { startLine: startLine(finding.line) }
+          }
+        }
+      ],
+      properties: {
+        method: finding.method || null,
+        confidence: confidenceWeight(finding)
+      },
+      partialFingerprints: {
+        "aiRiskSnapshot/v1": findingFingerprint(finding.id, uri, snippet, duplicateIndex)
+      }
+    };
+  });
+
+  const driver = {
+    name: "ai-risk-snapshot",
+    version: pkg.version,
+    rules
+  };
+  const informationUri = packageRepositoryUrl();
+  if (informationUri) driver.informationUri = informationUri;
+
+  return {
+    $schema: SARIF_SCHEMA_URL,
+    version: "2.1.0",
+    runs: [
+      {
+        tool: { driver },
+        properties: {
+          applicability: APPLICABILITY,
+          indicatorsNotComplianceDetermination: APPLICABILITY.articleReferencesNote
+        },
+        results
+      }
+    ]
+  };
+}
 
 // Confidence weighting: a finding's severity penalty is scaled by how it was
 // produced. ast-same-function always counts fully; pattern-only findings on
@@ -503,20 +675,37 @@ function escapeHtml(str) {
     .replace(/"/g, "&quot;");
 }
 
-function generateReport(findings, outputDir, meta) {
+function generateReport(findings, outputDir, meta, options = {}) {
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
+  const formats = new Set(
+    Array.isArray(options.formats) ? options.formats : ["json", "html", "sarif"]
+  );
   const score = calculateScore(findings);
-  const jsonReport = buildJSON(findings, score, meta);
-  const htmlReport = buildHTML(findings, score, meta, jsonReport);
+  let jsonPath = null;
+  let htmlPath = null;
+  let sarifPath = null;
 
-  const jsonPath = path.join(outputDir, "report.json");
-  const htmlPath = path.join(outputDir, "report.html");
+  // HTML embeds the JSON report for its copy button, so build the object even
+  // when report.json itself was not requested.
+  const jsonReport = formats.has("json") || formats.has("html")
+    ? buildJSON(findings, score, meta)
+    : null;
 
-  fs.writeFileSync(jsonPath, JSON.stringify(jsonReport, null, 2));
-  fs.writeFileSync(htmlPath, htmlReport);
+  if (formats.has("json")) {
+    jsonPath = path.join(outputDir, "report.json");
+    fs.writeFileSync(jsonPath, JSON.stringify(jsonReport, null, 2));
+  }
+  if (formats.has("html")) {
+    htmlPath = path.join(outputDir, "report.html");
+    fs.writeFileSync(htmlPath, buildHTML(findings, score, meta, jsonReport));
+  }
+  if (formats.has("sarif")) {
+    sarifPath = path.join(outputDir, "report.sarif");
+    fs.writeFileSync(sarifPath, JSON.stringify(buildSARIF(findings, meta), null, 2));
+  }
 
-  return { score, jsonPath, htmlPath };
+  return { score, jsonPath, htmlPath, sarifPath };
 }
 
-module.exports = { generateReport, calculateScore, getBand };
+module.exports = { generateReport, buildSARIF, calculateScore, getBand };

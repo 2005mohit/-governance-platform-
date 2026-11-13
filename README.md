@@ -28,10 +28,10 @@ certified audit.
   `.tf`/`.yaml`/`.yml`/non-manifest `.json` files under the target directory.
 - Never executes your code, never modifies your files, never makes a
   network call.
-- Writes a local report (JSON + HTML). Nothing is sent anywhere unless you
-  choose to send it yourself. `report.json` includes short code excerpts from
-  flagged lines (and masks common secret patterns), so review it before
-  sharing it with anyone.
+- Writes a local report (JSON + HTML, plus SARIF 2.1.0 by default). Nothing is
+  sent anywhere unless you choose to send it yourself. `report.json` and
+  `report.sarif` include short code excerpts from flagged lines (and mask
+  common secret patterns), so review them before sharing them with anyone.
 
 ## Usage
 
@@ -51,21 +51,25 @@ npx ai-risk-snapshot --output ./scan-results
 # Include test/fixture directories (excluded by default)
 npx ai-risk-snapshot --include-tests
 
+# Write only one artefact (json, html, or sarif)
+npx ai-risk-snapshot --format sarif
+
 # CI: accept the terms and fail the build on HIGH or worse
 npx ai-risk-snapshot . --yes --fail-on high
 ```
 
 Report is written to `./ai-risk-snapshot-report/` (or your `--output` path)
-in the current working directory. Add that folder to your `.gitignore` — the
-tool will remind you.
+in the current working directory. The default `--format all` writes
+`report.json`, `report.html`, and `report.sarif`. Add that folder to your
+`.gitignore` — the tool will remind you.
 
 ## Exit codes
 
 | Code | Meaning |
 |---|---|
 | `0` | Scan completed and no finding met the `--fail-on` threshold. With the default `--fail-on none`, this includes scans that found issues. |
-| `1` | Scan completed and at least one finding was at or above `--fail-on`. `report.json` and `report.html` are written before the process exits. |
-| `2` | Tool or configuration error: bad arguments, invalid `--fail-on`, missing or unreadable scan path, rule-pack failure, consent declined, report-write failure, or an unexpected crash. |
+| `1` | Scan completed and at least one finding was at or above `--fail-on`. The requested report files are written before the process exits. |
+| `2` | Tool or configuration error: bad arguments, invalid `--fail-on` or `--format`, missing or unreadable scan path, rule-pack failure, consent declined, report-write failure, or an unexpected crash. |
 
 `--fail-on` accepts `critical`, `high`, `medium`, `low`, or `none` (the
 default). "At or above" follows the severity order CRITICAL > HIGH > MEDIUM >
@@ -76,6 +80,68 @@ none` never fails on findings.
 non-interactively; without it, a non-interactive run exits 2 instead of
 scanning. `--fail-on` turns findings into a failing build; without it, the
 command exits 0 even when findings exist.
+
+## Output formats
+
+`--format` controls which artefacts are written:
+
+| Value | Files written |
+|---|---|
+| `all` (default) | `report.json`, `report.html`, and `report.sarif` |
+| `json` | `report.json` only |
+| `html` | `report.html` only |
+| `sarif` | `report.sarif` only |
+
+An explicit format writes **only** that artefact. In particular, `--format
+sarif` does not write `report.json` or `report.html`. The HTML report embeds a
+copy of the JSON data for its copy button, but that data is not written to
+disk unless `json` (or `all`) is selected. An invalid value exits 2 and is
+covered by a test. Omitting `--format` keeps the previous behaviour and adds
+`report.sarif`.
+
+## SARIF 2.1.0
+
+`report.sarif` is a standard SARIF 2.1.0 log for code-scanning and CI
+consumers. It contains only data already present in `report.json` (plus tool
+metadata), including the same redacted snippets, so a secret masked in the
+JSON report is masked in the SARIF log too.
+
+- `tool.driver` contains the tool name, the version from `package.json`, and
+  one rule entry per rule in the pack (including rules with no findings).
+  `informationUri` is emitted only when `package.json` contains a real
+  repository URL; it is omitted rather than invented.
+- Each rule carries `id`, `name`, `shortDescription`,
+  `defaultConfiguration.level`, and `properties.article` /
+  `properties.severity`. Optional pack fields such as `providerOrDeployer` or
+  `highRiskOnly` are copied only if the rule pack defines them.
+- Run-level `properties` carry the applicability block and the statement that
+  findings are indicators, not a compliance determination.
+- Each result maps severity to SARIF level: CRITICAL/HIGH → `error`, MEDIUM →
+  `warning`, LOW → `note`. Locations use a relative, forward-slash
+  `artifactLocation.uri` and `region.startLine`; absolute paths are never
+  written. `properties.method` and `properties.confidence` mirror the JSON
+  report.
+- `partialFingerprints` use a SHA-256 hash of rule ID, relative path,
+  normalised snippet (trimmed, whitespace-collapsed), and a duplicate counter.
+  The line number is deliberately excluded, so inserting a blank line above a
+  finding does not create a new identity.
+
+### GitHub code scanning (documentation only)
+
+The scanner never uploads anything. If you choose to upload the SARIF file,
+do it in a separate step, for example:
+
+```yaml
+- run: npx ai-risk-snapshot . --yes --format sarif --output scan-results
+- uses: github/codeql-action/upload-sarif@v3
+  with:
+    sarif_file: scan-results/report.sarif
+```
+
+Review the SARIF file (and your organisation's data-handling rules) before
+uploading it. The schema used by the tests is vendored under
+`test/fixtures/sarif/`; validation runs offline, and `ajv` is a
+devDependency that is not part of the published package.
 
 ## Scope and limits (read this before trusting the score)
 

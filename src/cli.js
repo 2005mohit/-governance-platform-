@@ -12,7 +12,10 @@ const pkg = require("../package.json");
 
 const USAGE =
   "Usage: ai-risk-snapshot [path] [--yes] [--include-tests] [--output <dir>]\n" +
-  "                        [--fail-on <critical|high|medium|low|none>]";
+  "                        [--fail-on <critical|high|medium|low|none>]\n" +
+  "                        [--format <json|html|sarif|all>]";
+
+const FORMATS = ["json", "html", "sarif", "all"];
 
 function parseArgs(argv) {
   const opts = {
@@ -20,7 +23,8 @@ function parseArgs(argv) {
     outputDir: null,
     yes: false,
     includeTests: false,
-    failOn: "none"
+    failOn: "none",
+    format: "all"
   };
 
   let positionalSeen = false;
@@ -52,6 +56,19 @@ function parseArgs(argv) {
         };
       }
       opts.failOn = value.toLowerCase();
+      i++;
+    } else if (arg === "--format") {
+      const value = args[i + 1];
+      if (value === undefined || value.startsWith("-")) {
+        return { error: `--format requires one of: ${FORMATS.join(", ")}.` };
+      }
+      const normalized = value.toLowerCase();
+      if (!FORMATS.includes(normalized)) {
+        return {
+          error: `Invalid --format value "${value}". Use one of: ${FORMATS.join(", ")}.`
+        };
+      }
+      opts.format = normalized;
       i++;
     } else if (arg.startsWith("-")) {
       return { error: `Unknown option: ${arg}` };
@@ -179,13 +196,15 @@ async function main() {
     const scanner = new Scanner(rulesPath, opts.rootDir, { includeTests: opts.includeTests });
     const findings = await scanner.scan();
 
-    const { score, jsonPath, htmlPath } = generateReport(findings, outputDir, {
+    const formats = opts.format === "all" ? ["json", "html", "sarif"] : [opts.format];
+    const { score, jsonPath, htmlPath, sarifPath } = generateReport(findings, outputDir, {
       version: pkg.version,
       scannedDirectory: opts.rootDir,
       filesScanned: scanner.filesScanned,
       filesSkipped: scanner.skippedFiles,
-      astAvailable: scanner.astAvailable
-    });
+      astAvailable: scanner.astAvailable,
+      rules: scanner.rules
+    }, { formats });
 
     const band = getBand(score, findings);
 
@@ -196,8 +215,10 @@ async function main() {
     }
     console.log(`  Findings:      ${findings.length}`);
     console.log(`  Score:         ${score}/100 (${band.label})`);
-    console.log(`\n  Report: ${htmlPath}`);
-    console.log(`  Data:   ${jsonPath}`);
+    console.log("");
+    if (htmlPath) console.log(`  Report: ${htmlPath}`);
+    if (jsonPath) console.log(`  Data:   ${jsonPath}`);
+    if (sarifPath) console.log(`  SARIF:  ${sarifPath}`);
 
     if (findings.length > 0) {
       const serious = findings.filter((f) => f.severity === "CRITICAL" || f.severity === "HIGH").length;
