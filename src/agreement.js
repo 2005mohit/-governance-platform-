@@ -68,9 +68,10 @@ async function promptAgreement(autoYes, outputDir) {
     console.log(
       "No interactive terminal detected, and no --yes flag was passed.\n" +
       "Re-run with --yes if you've read the terms above and agree, e.g.:\n" +
-      "  npx ai-risk-snapshot --yes\n"
+      "  npx ai-risk-snapshot --yes\n" +
+      "In CI you normally need both --yes and --fail-on.\n"
     );
-    process.exit(1);
+    return false;
   }
 
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
@@ -84,7 +85,7 @@ async function promptAgreement(autoYes, outputDir) {
         resolve(true);
       } else {
         console.log("You must agree to proceed. Exiting.");
-        process.exit(1);
+        resolve(false);
       }
     });
   });

@@ -50,11 +50,32 @@ npx ai-risk-snapshot --output ./scan-results
 
 # Include test/fixture directories (excluded by default)
 npx ai-risk-snapshot --include-tests
+
+# CI: accept the terms and fail the build on HIGH or worse
+npx ai-risk-snapshot . --yes --fail-on high
 ```
 
 Report is written to `./ai-risk-snapshot-report/` (or your `--output` path)
 in the current working directory. Add that folder to your `.gitignore` — the
 tool will remind you.
+
+## Exit codes
+
+| Code | Meaning |
+|---|---|
+| `0` | Scan completed and no finding met the `--fail-on` threshold. With the default `--fail-on none`, this includes scans that found issues. |
+| `1` | Scan completed and at least one finding was at or above `--fail-on`. `report.json` and `report.html` are written before the process exits. |
+| `2` | Tool or configuration error: bad arguments, invalid `--fail-on`, missing or unreadable scan path, rule-pack failure, consent declined, report-write failure, or an unexpected crash. |
+
+`--fail-on` accepts `critical`, `high`, `medium`, `low`, or `none` (the
+default). "At or above" follows the severity order CRITICAL > HIGH > MEDIUM >
+LOW, so `--fail-on high` also fails on a CRITICAL finding, and `--fail-on
+none` never fails on findings.
+
+**CI needs both `--yes` and `--fail-on`.** `--yes` accepts the terms
+non-interactively; without it, a non-interactive run exits 2 instead of
+scanning. `--fail-on` turns findings into a failing build; without it, the
+command exits 0 even when findings exist.
 
 ## Scope and limits (read this before trusting the score)
 

@@ -2,6 +2,14 @@
 
 ## [1.2.0] - 2026-11-13
 
+### Added
+
+- `--fail-on <critical|high|medium|low|none>` (default `none`). Exit 1 when
+  a finding is at or above the threshold; exit 2 for tool or configuration
+  errors. Report files are written before a failing gate exits.
+- Tests for every threshold, clean and severity-specific fixtures, invalid
+  arguments, unreadable paths, declined consent, and rule-pack failure.
+
 ### Changed
 
 - **Breaking:** the per-finding `method` value `ast-confirmed` is now

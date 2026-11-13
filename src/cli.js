@@ -6,17 +6,24 @@ const os = require("os");
 const { promptAgreement } = require("./agreement");
 const Scanner = require("./scanner");
 const { generateReport, getBand } = require("./reporter");
+const { FAIL_ON_LEVELS, findingsAtOrAbove, isValidFailOn } = require("./exitcodes");
 
 const pkg = require("../package.json");
+
+const USAGE =
+  "Usage: ai-risk-snapshot [path] [--yes] [--include-tests] [--output <dir>]\n" +
+  "                        [--fail-on <critical|high|medium|low|none>]";
 
 function parseArgs(argv) {
   const opts = {
     rootDir: process.cwd(),
     outputDir: null,
     yes: false,
-    includeTests: false
+    includeTests: false,
+    failOn: "none"
   };
 
+  let positionalSeen = false;
   const args = argv.slice(2);
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
@@ -28,13 +35,34 @@ function parseArgs(argv) {
       // accepted no-op for backwards-compatible docs; scanning is the default action
       continue;
     } else if (arg === "--output" || arg === "-o") {
-      opts.outputDir = args[i + 1];
+      const value = args[i + 1];
+      if (value === undefined || value.startsWith("-")) {
+        return { error: `${arg} requires a directory path.` };
+      }
+      opts.outputDir = value;
       i++;
-    } else if (!arg.startsWith("-")) {
+    } else if (arg === "--fail-on") {
+      const value = args[i + 1];
+      if (value === undefined || value.startsWith("-")) {
+        return { error: `--fail-on requires one of: ${FAIL_ON_LEVELS.join(", ")}.` };
+      }
+      if (!isValidFailOn(value)) {
+        return {
+          error: `Invalid --fail-on value "${value}". Use one of: ${FAIL_ON_LEVELS.join(", ")}.`
+        };
+      }
+      opts.failOn = value.toLowerCase();
+      i++;
+    } else if (arg.startsWith("-")) {
+      return { error: `Unknown option: ${arg}` };
+    } else if (positionalSeen) {
+      return { error: `Unexpected extra argument: ${arg}` };
+    } else {
       opts.rootDir = path.resolve(arg);
+      positionalSeen = true;
     }
   }
-  return opts;
+  return { opts };
 }
 
 function plainError(err) {
@@ -45,6 +73,13 @@ function plainError(err) {
     return "the disk is full";
   }
   return err && err.code ? `an error occurred (${err.code})` : "an unknown error occurred";
+}
+
+function scanPathError(err) {
+  if (err && err.code === "ENOENT") return "directory not found";
+  if (err && err.code === "ENOTDIR") return "path is not a directory";
+  if (err && (err.code === "EACCES" || err.code === "EPERM")) return "permission denied";
+  return plainError(err);
 }
 
 // Figures out where the report should go, and makes sure it's actually
@@ -94,13 +129,27 @@ function resolveOutputDir(opts) {
 }
 
 async function main() {
-  const opts = parseArgs(process.argv);
+  const parsed = parseArgs(process.argv);
+  if (parsed.error) {
+    console.error(parsed.error);
+    console.error(USAGE);
+    process.exitCode = 2;
+    return;
+  }
+  const opts = parsed.opts;
 
   try {
-    await fs.promises.access(opts.rootDir);
-  } catch {
-    console.log(`Directory not found: ${opts.rootDir}`);
-    process.exit(1);
+    const stat = await fs.promises.stat(opts.rootDir);
+    if (!stat.isDirectory()) {
+      const notDir = new Error("not a directory");
+      notDir.code = "ENOTDIR";
+      throw notDir;
+    }
+    await fs.promises.access(opts.rootDir, fs.constants.R_OK);
+  } catch (err) {
+    console.error(`Cannot scan "${opts.rootDir}": ${scanPathError(err)}.`);
+    process.exitCode = 2;
+    return;
   }
 
   // Output goes in a dedicated folder, separate from the scanned project,
@@ -113,12 +162,17 @@ async function main() {
     outputDir = resolved.outputDir;
     outputFellBack = resolved.fellBack;
   } catch (err) {
-    console.log(err.message);
-    process.exit(1);
+    console.error(err.message);
+    process.exitCode = 2;
+    return;
   }
 
   const agreed = await promptAgreement(opts.yes, outputDir);
-  if (!agreed) return;
+  if (!agreed) {
+    console.error("Consent was not given; no scan was run.");
+    process.exitCode = 2;
+    return;
+  }
 
   try {
     const rulesPath = path.join(__dirname, "../rules/eu_ai_act.yaml");
@@ -165,10 +219,28 @@ async function main() {
       );
     }
     console.log("Nothing from this scan was sent anywhere. It stayed on this machine.");
+
+    // The report is written above, so a failing gate still leaves both files
+    // behind. Exit 1 means "scan completed, threshold met" — never "the scan
+    // broke". Tool/config failures use exit 2 below.
+    const thresholdHits = findingsAtOrAbove(findings, opts.failOn);
+    if (thresholdHits.length > 0) {
+      console.error(
+        `\nFail threshold "${opts.failOn}" reached: ` +
+        `${thresholdHits.length} finding${thresholdHits.length === 1 ? "" : "s"} ` +
+        `at or above ${opts.failOn.toUpperCase()}.`
+      );
+      process.exitCode = 1;
+    } else {
+      process.exitCode = 0;
+    }
   } catch (error) {
     console.error("Scan failed:", error.message);
-    process.exit(1);
+    process.exitCode = 2;
   }
 }
 
-main();
+main().catch((error) => {
+  console.error("Unexpected failure:", error && error.message ? error.message : error);
+  process.exitCode = 2;
+});
