@@ -181,7 +181,8 @@ function main() {
       [FIXTURES.clean, "--yes", "-o", path.join(brokenRoot, "out")]
     );
     assertExit(result, 2, "rule-pack failure");
-    assert.match(result.stderr, /Scan failed:/);
+    assert.match(result.stderr, /Rule pack validation failed:/);
+    assert.match(result.stderr, /is not valid YAML/);
     assert.ok(!fs.existsSync(path.join(brokenRoot, "out", "report.json")), "no report on a failed scan");
   }
 

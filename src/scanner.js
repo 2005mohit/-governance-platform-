@@ -2,8 +2,8 @@
 const fs = require("fs").promises;
 const path = require("path");
 const { spawnSync } = require("child_process");
-const yaml = require("js-yaml");
 const { redactPII, findFirstNonCommentMatch, getContextWindow } = require("./utils");
+const { validateRulePack } = require("./rulepack");
 
 const CODE_EXT = [".py", ".js", ".ts", ".jsx", ".tsx"];
 const IAC_EXT = [".tf", ".yaml", ".yml"];
@@ -301,12 +301,13 @@ function isMinifiedContent(content) {
 
 class Scanner {
   constructor(rulesPath, rootDir, options = {}) {
-    this.rules = yaml.load(require("fs").readFileSync(rulesPath, "utf8")).rules;
-    // Phase 4: resolve shared action taxonomies referenced via `actionsRef`.
-    // Taxonomy files live next to the rule pack that references them, so a
-    // custom pack directory stays self-contained. An inline `actions:` list
-    // on a rule takes precedence over its `actionsRef`.
-    this.resolveActionRefs(rulesPath);
+    // Validate before scanning: a bad pack must never produce a partial scan
+    // or a silent zero-action run. Validation also resolves actionsRef
+    // taxonomies, so every proximity rule arrives with a non-empty actions
+    // list or construction throws with the pack path, rule id, field, problem
+    // and fix.
+    const { rules } = validateRulePack(rulesPath);
+    this.rules = rules;
     this.rootDir = rootDir;
     this.includeTests = !!options.includeTests;
     this.findings = [];
@@ -333,41 +334,6 @@ class Scanner {
     // Capability flag reported in JSON: true = an interpreter answered a
     // --version probe, false = no Python, null = not probed yet.
     this.astAvailable = null;
-  }
-
-  // Loads `<ref>.yaml` from the rule pack's directory and substitutes its
-  // action names into every rule carrying `actionsRef: <ref>`. Throws on a
-  // dangling reference: silently scanning with zero actions would suppress
-  // every proximity finding, which must never fail quiet.
-  resolveActionRefs(rulesPath) {
-    const cache = {};
-    for (const rule of this.rules) {
-      if (Array.isArray(rule.actions) && rule.actions.length > 0) continue;
-      if (!rule.actionsRef) continue;
-      if (!cache[rule.actionsRef]) {
-        const taxPath = path.join(path.dirname(rulesPath), `${rule.actionsRef}.yaml`);
-        let taxonomy;
-        try {
-          taxonomy = yaml.load(require("fs").readFileSync(taxPath, "utf8"));
-        } catch (err) {
-          throw new Error(
-            `Rule "${rule.id}" references actionsRef "${rule.actionsRef}" ` +
-            `but ${taxPath} could not be loaded (${err.code || err.message}).`
-          );
-        }
-        const names = (taxonomy && taxonomy.actions || [])
-          .map((a) => (typeof a === "string" ? a : a && a.name))
-          .filter((n) => typeof n === "string" && n.length > 0);
-        if (!names.length) {
-          throw new Error(
-            `Rule "${rule.id}" references actionsRef "${rule.actionsRef}" ` +
-            `but ${taxPath} contains no usable action names.`
-          );
-        }
-        cache[rule.actionsRef] = names;
-      }
-      rule.actions = cache[rule.actionsRef];
-    }
   }
 
   async scan() {

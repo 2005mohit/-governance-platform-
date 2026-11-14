@@ -5,6 +5,7 @@ const fs = require("fs");
 const os = require("os");
 const { promptAgreement } = require("./agreement");
 const Scanner = require("./scanner");
+const { RulePackError } = require("./rulepack");
 const { generateReport, getBand } = require("./reporter");
 const { FAIL_ON_LEVELS, findingsAtOrAbove, isValidFailOn } = require("./exitcodes");
 
@@ -193,7 +194,17 @@ async function main() {
 
   try {
     const rulesPath = path.join(__dirname, "../rules/eu_ai_act.yaml");
-    const scanner = new Scanner(rulesPath, opts.rootDir, { includeTests: opts.includeTests });
+    let scanner;
+    try {
+      scanner = new Scanner(rulesPath, opts.rootDir, { includeTests: opts.includeTests });
+    } catch (error) {
+      if (error instanceof RulePackError) {
+        console.error(`Rule pack validation failed:\n${error.message}`);
+        process.exitCode = 2;
+        return;
+      }
+      throw error;
+    }
     const findings = await scanner.scan();
 
     const formats = opts.format === "all" ? ["json", "html", "sarif"] : [opts.format];

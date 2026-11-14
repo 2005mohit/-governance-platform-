@@ -63,6 +63,42 @@ in the current working directory. The default `--format all` writes
 `report.json`, `report.html`, and `report.sarif`. Add that folder to your
 `.gitignore` — the tool will remind you.
 
+## Rule-pack validation
+
+The shipped pack (`rules/eu_ai_act.yaml` and its `high_risk_actions.yaml`
+taxonomy) is validated at startup, before any file is scanned. A custom pack
+is validated whenever a `Scanner` is constructed. Invalid packs exit `2` and
+write no report files. Each message names the pack path, the rule id (when it
+is known), the field, the problem, and the fix, for example:
+
+```
+Rule pack ".../rules/eu_ai_act.yaml" is invalid:
+  - rule "BAD_REGEX" field "patterns[0]": regex "(" does not compile
+    (Invalid regular expression: ...). Fix: correct the pattern or remove it.
+```
+
+Validation rejects:
+
+- regexes that do not compile, and obvious catastrophic shapes such as
+  `(a+)+` or `(.*)*` (a conservative heuristic, not a ReDoS proof);
+- severities outside `CRITICAL`, `HIGH`, `MEDIUM`, `LOW`, and unknown
+  `logic` values or `fileTypes`;
+- an empty rule list, empty `patterns`/marker lists, or a rule with neither
+  `patterns` nor `logic`;
+- missing or wrongly typed required fields (`id`, `severity`, lists where a
+  list is expected, positive integers, booleans);
+- duplicate rule ids;
+- dangling `actionsRef` taxonomies, empty taxonomy action lists, duplicate
+  action names, and action names that do not form a valid alternation;
+- unknown top-level keys, unknown rule fields, and unknown taxonomy fields;
+- packs larger than 256 KiB, and YAML anchor/alias/merge-key bombs (more than
+  50 alias tokens, or an estimated expansion above 100,000 nodes).
+
+Validation adds about 1.6 ms to startup on the shipped pack in this
+environment (Node 24, 500 warm runs). The caps and the catastrophic-regex
+check are intentionally conservative heuristics; they bound the common
+failure modes, not every possible malicious document.
+
 ## Exit codes
 
 | Code | Meaning |

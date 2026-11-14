@@ -18,6 +18,14 @@
   paths, secret redaction, format selection, and exit-code compatibility.
 - Tests for every threshold, clean and severity-specific fixtures, invalid
   arguments, unreadable paths, declined consent, and rule-pack failure.
+- Rule packs are validated before scanning (and at `Scanner` construction).
+  Invalid regexes, unknown severities, empty or missing fields, duplicate
+  ids, wrong types, dangling `actionsRef` taxonomies, unknown keys, oversized
+  packs, YAML alias bombs, and obvious catastrophic-regex shapes exit `2`
+  with the pack path, rule id, field, problem, and fix. No report is written.
+  Validation adds about 1.6 ms of startup time on the shipped pack. The
+  catastrophic-regex and alias-expansion checks are conservative heuristics,
+  not proofs.
 
 ### Changed
 
