@@ -29,6 +29,12 @@
 
 ### Changed
 
+- **Breaking:** the minimum supported Node.js version is now 18
+  (`engines.node` is `>=18`). Tested on Node 18.20.8, 20.20.2, 22.23.5 and
+  24.19.0.
+- `js-yaml` is now `^4.3.2` (was `^4.1.0`), past GHSA-2883-xcg3-v3hh
+  (high severity, `maxTotalMergeKeys` did not limit CPU for empty merge
+  sources). `npm audit` and `npm audit --omit=dev` report 0 vulnerabilities.
 - **Breaking:** the per-finding `method` value `ast-confirmed` is now
   `ast-same-function`. It still means the structural check covered the
   enclosing function only, never the callee or other files. Update any

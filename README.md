@@ -33,6 +33,12 @@ certified audit.
   `report.sarif` include short code excerpts from flagged lines (and mask
   common secret patterns), so review them before sharing them with anyone.
 
+## Requirements
+
+- Node.js 18 or newer (`engines.node` is `>=18`).
+- `js-yaml` is pinned to `^4.3.2`, past GHSA-2883-xcg3-v3hh (high severity;
+  `maxTotalMergeKeys` did not limit CPU for empty merge sources in 4.0.0–4.3.1).
+
 ## Usage
 
 ```bash
