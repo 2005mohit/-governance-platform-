@@ -11,7 +11,7 @@
   },
   "scripts": {
     "start": "node src/cli.js",
-    "test": "node test/rules.test.js && node test/exitcodes.test.js && node test/cli-exitcodes.test.js && node test/sarif.test.js"
+    "test": "node test/rules.test.js && node test/exitcodes.test.js && node test/cli-exitcodes.test.js && node test/js-definitions.test.js && node test/sarif.test.js"
   },
   "dependencies": {
     "js-yaml": "^4.1.0"
