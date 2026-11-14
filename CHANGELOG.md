@@ -64,6 +64,13 @@
 - Added `npm test`, including fixtures that assert the article mapping for
   `SENSITIVE_DATA`, `SAFETY_BYPASS`, `UNSAFE_DESERIALIZE`, `ERROR_LEAKAGE`,
   and `CORS_WILDCARD`.
+- Corpus regression tests (`test/corpus.test.js`) now cover all 84 audit
+  corpus cases with the per-case rule-id set pinned in
+  `test/corpus/expected.json`. Plain, evasion and framework cases are
+  reported separately and never merged into one metric. Four AST-dependent
+  cases are skipped when Python is unavailable, with the skip printed.
+- CI workflow (`.github/workflows/ci.yml`) runs `npm test` and the baseline
+  gate on Node 18, 20 and 22, on both Ubuntu and Windows.
 - Large files no longer scan quadratically. Candidate line numbers come from a
   per-file line index, the file is split once per rule instead of once per
   action, context windows reuse the same line array, and action-call matches

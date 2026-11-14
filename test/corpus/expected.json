@@ -1,0 +1,519 @@
+{
+  "generatedBy": "test/corpus.test.js --update",
+  "note": "Exact rule-id set per corpus case at the accepted snapshot. Evasion and framework cases are tracked separately from plain cases.",
+  "groups": {
+    "plain": [
+      "id_pos_env",
+      "id_pos_aws",
+      "id_neg_env_ref",
+      "id_neg_placeholder",
+      "id_neg_comment",
+      "iam_pos_tf",
+      "iam_neg_specific",
+      "iam_neg_k8s",
+      "nh_pos_py",
+      "nh_pos_js",
+      "nh_neg_guard",
+      "nh_neg_caller_guard",
+      "nh_fp_js_class",
+      "nh_fp_ts_interface",
+      "nh_pos_approval_unchecked",
+      "nh_pos_async",
+      "nh_neg_assert",
+      "nh_neg_or",
+      "nh_neg_early_return",
+      "nh_neg_try",
+      "nl_pos_py",
+      "nl_pos_js",
+      "nl_neg_logging",
+      "nd_pos",
+      "nd_neg_disclosure",
+      "ha_pos",
+      "ha_neg",
+      "ha_neg_express",
+      "ad_pos",
+      "ad_neg_record",
+      "ad_fp_js_response",
+      "co_pos",
+      "co_neg",
+      "sd_pos_pdf",
+      "sd_fp_template",
+      "sd_fp_1040",
+      "ud_pos_pickle",
+      "ud_neg_safe",
+      "ud_neg_eval_const",
+      "el_pos_httpexception",
+      "el_neg_log_only",
+      "el_fp_server_log",
+      "sb_pos",
+      "sb_neg_false",
+      "sb_fp_validated_var"
+    ],
+    "evasion": [
+      "id_ev_projkey",
+      "id_ev_concat",
+      "id_ev_github_pat",
+      "iam_ev_list",
+      "iam_ev_service",
+      "nh_ev_helper_guard",
+      "nh_ev_renamed",
+      "nh_ev_string_sql",
+      "nh_ev_dynamic",
+      "nl_ev_callee_logging",
+      "nl_ev_custom_logger",
+      "nd_ev_ui_disclosure",
+      "nd_ev_internal_marker",
+      "nd_ev_prompt_file",
+      "ha_ev_middleware",
+      "ad_ev_variable",
+      "ad_ev_enum",
+      "co_ev_variable",
+      "co_ev_express",
+      "sd_ev_csv",
+      "sd_ev_json",
+      "ud_ev_dill",
+      "ud_ev_eval_req",
+      "ud_ev_new_function",
+      "el_ev_dot_message",
+      "el_ev_traceback",
+      "sb_ev_env_flag"
+    ],
+    "framework": [
+      "fw_langchain_py",
+      "fw_crewai_py",
+      "fw_autogen_py",
+      "fw_openai_schema_py",
+      "fw_langchain_js",
+      "fw_langgraph_py",
+      "fw_openai_agents_py",
+      "fw_anthropic_py",
+      "fw_mcp_py",
+      "fw_semantic_kernel_py",
+      "fw_llamaindex_py",
+      "fw_pydantic_ai_py"
+    ],
+    "stress": []
+  },
+  "cases": {
+    "id_pos_env": {
+      "rules": [
+        "IDENTITY_KEY"
+      ],
+      "agentTool": false
+    },
+    "id_pos_aws": {
+      "rules": [
+        "IDENTITY_KEY"
+      ],
+      "agentTool": false
+    },
+    "id_neg_env_ref": {
+      "rules": [],
+      "agentTool": false
+    },
+    "id_neg_placeholder": {
+      "rules": [],
+      "agentTool": false
+    },
+    "id_neg_comment": {
+      "rules": [],
+      "agentTool": false
+    },
+    "id_ev_projkey": {
+      "rules": [],
+      "agentTool": false
+    },
+    "id_ev_concat": {
+      "rules": [],
+      "agentTool": false
+    },
+    "id_ev_github_pat": {
+      "rules": [],
+      "agentTool": false
+    },
+    "iam_pos_tf": {
+      "rules": [
+        "IAM_WILDCARD"
+      ],
+      "agentTool": false
+    },
+    "iam_neg_specific": {
+      "rules": [],
+      "agentTool": false
+    },
+    "iam_ev_list": {
+      "rules": [],
+      "agentTool": false
+    },
+    "iam_ev_service": {
+      "rules": [],
+      "agentTool": false
+    },
+    "iam_neg_k8s": {
+      "rules": [],
+      "agentTool": false
+    },
+    "nh_pos_py": {
+      "rules": [
+        "NO_HUMAN_LOOP"
+      ],
+      "agentTool": false
+    },
+    "nh_pos_js": {
+      "rules": [
+        "NO_HUMAN_LOOP"
+      ],
+      "agentTool": false
+    },
+    "nh_neg_guard": {
+      "rules": [],
+      "agentTool": false
+    },
+    "nh_neg_caller_guard": {
+      "rules": [],
+      "agentTool": false
+    },
+    "nh_ev_helper_guard": {
+      "rules": [
+        "NO_HUMAN_LOOP"
+      ],
+      "agentTool": false
+    },
+    "nh_ev_renamed": {
+      "rules": [],
+      "agentTool": false
+    },
+    "nh_ev_string_sql": {
+      "rules": [],
+      "agentTool": false
+    },
+    "nh_ev_dynamic": {
+      "rules": [],
+      "agentTool": false
+    },
+    "nh_fp_js_class": {
+      "rules": [],
+      "agentTool": false
+    },
+    "nh_fp_ts_interface": {
+      "rules": [],
+      "agentTool": false
+    },
+    "nh_pos_approval_unchecked": {
+      "rules": [
+        "NO_HUMAN_LOOP"
+      ],
+      "agentTool": false
+    },
+    "nh_pos_async": {
+      "rules": [
+        "NO_HUMAN_LOOP"
+      ],
+      "agentTool": false
+    },
+    "nh_neg_assert": {
+      "rules": [],
+      "agentTool": false
+    },
+    "nh_neg_or": {
+      "rules": [
+        "NO_HUMAN_LOOP"
+      ],
+      "agentTool": false
+    },
+    "nh_neg_early_return": {
+      "rules": [],
+      "agentTool": false
+    },
+    "nh_neg_try": {
+      "rules": [
+        "NO_HUMAN_LOOP"
+      ],
+      "agentTool": false
+    },
+    "nl_pos_py": {
+      "rules": [
+        "NO_LOGGING"
+      ],
+      "agentTool": false
+    },
+    "nl_pos_js": {
+      "rules": [
+        "NO_LOGGING"
+      ],
+      "agentTool": false
+    },
+    "nl_neg_logging": {
+      "rules": [],
+      "agentTool": false
+    },
+    "nl_ev_callee_logging": {
+      "rules": [
+        "NO_HUMAN_LOOP",
+        "NO_LOGGING"
+      ],
+      "agentTool": false
+    },
+    "nl_ev_custom_logger": {
+      "rules": [
+        "NO_LOGGING"
+      ],
+      "agentTool": false
+    },
+    "nd_pos": {
+      "rules": [
+        "NO_AI_DISCLOSURE"
+      ],
+      "agentTool": false
+    },
+    "nd_neg_disclosure": {
+      "rules": [],
+      "agentTool": false
+    },
+    "nd_ev_ui_disclosure": {
+      "rules": [
+        "NO_AI_DISCLOSURE"
+      ],
+      "agentTool": false
+    },
+    "nd_ev_internal_marker": {
+      "rules": [],
+      "agentTool": false
+    },
+    "nd_ev_prompt_file": {
+      "rules": [],
+      "agentTool": false
+    },
+    "ha_pos": {
+      "rules": [
+        "HTTP_NO_AUTH"
+      ],
+      "agentTool": false
+    },
+    "ha_neg": {
+      "rules": [],
+      "agentTool": false
+    },
+    "ha_ev_middleware": {
+      "rules": [
+        "HTTP_NO_AUTH"
+      ],
+      "agentTool": false
+    },
+    "ha_neg_express": {
+      "rules": [],
+      "agentTool": false
+    },
+    "ad_pos": {
+      "rules": [
+        "AUTO_DECISION"
+      ],
+      "agentTool": false
+    },
+    "ad_neg_record": {
+      "rules": [],
+      "agentTool": false
+    },
+    "ad_ev_variable": {
+      "rules": [],
+      "agentTool": false
+    },
+    "ad_ev_enum": {
+      "rules": [],
+      "agentTool": false
+    },
+    "ad_fp_js_response": {
+      "rules": [
+        "AUTO_DECISION"
+      ],
+      "agentTool": false
+    },
+    "co_pos": {
+      "rules": [
+        "CORS_WILDCARD"
+      ],
+      "agentTool": false
+    },
+    "co_neg": {
+      "rules": [],
+      "agentTool": false
+    },
+    "co_ev_variable": {
+      "rules": [],
+      "agentTool": false
+    },
+    "co_ev_express": {
+      "rules": [],
+      "agentTool": false
+    },
+    "sd_pos_pdf": {
+      "rules": [
+        "SENSITIVE_DATA"
+      ],
+      "agentTool": false
+    },
+    "sd_fp_template": {
+      "rules": [
+        "SENSITIVE_DATA"
+      ],
+      "agentTool": false
+    },
+    "sd_ev_csv": {
+      "rules": [],
+      "agentTool": false
+    },
+    "sd_ev_json": {
+      "rules": [],
+      "agentTool": false
+    },
+    "sd_fp_1040": {
+      "rules": [
+        "SENSITIVE_DATA"
+      ],
+      "agentTool": false
+    },
+    "ud_pos_pickle": {
+      "rules": [
+        "UNSAFE_DESERIALIZE"
+      ],
+      "agentTool": false
+    },
+    "ud_neg_safe": {
+      "rules": [],
+      "agentTool": false
+    },
+    "ud_ev_dill": {
+      "rules": [],
+      "agentTool": false
+    },
+    "ud_ev_eval_req": {
+      "rules": [],
+      "agentTool": false
+    },
+    "ud_neg_eval_const": {
+      "rules": [],
+      "agentTool": false
+    },
+    "ud_ev_new_function": {
+      "rules": [],
+      "agentTool": false
+    },
+    "el_pos_httpexception": {
+      "rules": [
+        "ERROR_LEAKAGE"
+      ],
+      "agentTool": false
+    },
+    "el_neg_log_only": {
+      "rules": [],
+      "agentTool": false
+    },
+    "el_ev_dot_message": {
+      "rules": [],
+      "agentTool": false
+    },
+    "el_ev_traceback": {
+      "rules": [],
+      "agentTool": false
+    },
+    "el_fp_server_log": {
+      "rules": [
+        "ERROR_LEAKAGE"
+      ],
+      "agentTool": false
+    },
+    "sb_pos": {
+      "rules": [
+        "SAFETY_BYPASS"
+      ],
+      "agentTool": false
+    },
+    "sb_neg_false": {
+      "rules": [],
+      "agentTool": false
+    },
+    "sb_ev_env_flag": {
+      "rules": [],
+      "agentTool": false
+    },
+    "sb_fp_validated_var": {
+      "rules": [
+        "SAFETY_BYPASS"
+      ],
+      "agentTool": false
+    },
+    "fw_langchain_py": {
+      "rules": [
+        "NO_HUMAN_LOOP"
+      ],
+      "agentTool": true
+    },
+    "fw_crewai_py": {
+      "rules": [
+        "NO_HUMAN_LOOP"
+      ],
+      "agentTool": true
+    },
+    "fw_autogen_py": {
+      "rules": [
+        "NO_HUMAN_LOOP"
+      ],
+      "agentTool": true
+    },
+    "fw_openai_schema_py": {
+      "rules": [
+        "NO_HUMAN_LOOP"
+      ],
+      "agentTool": true
+    },
+    "fw_langchain_js": {
+      "rules": [
+        "NO_HUMAN_LOOP",
+        "NO_LOGGING"
+      ],
+      "agentTool": true
+    },
+    "fw_langgraph_py": {
+      "rules": [
+        "NO_HUMAN_LOOP"
+      ],
+      "agentTool": false
+    },
+    "fw_openai_agents_py": {
+      "rules": [
+        "NO_HUMAN_LOOP"
+      ],
+      "agentTool": false
+    },
+    "fw_anthropic_py": {
+      "rules": [
+        "NO_HUMAN_LOOP"
+      ],
+      "agentTool": false
+    },
+    "fw_mcp_py": {
+      "rules": [
+        "NO_HUMAN_LOOP"
+      ],
+      "agentTool": false
+    },
+    "fw_semantic_kernel_py": {
+      "rules": [
+        "NO_HUMAN_LOOP"
+      ],
+      "agentTool": false
+    },
+    "fw_llamaindex_py": {
+      "rules": [
+        "NO_HUMAN_LOOP"
+      ],
+      "agentTool": false
+    },
+    "fw_pydantic_ai_py": {
+      "rules": [
+        "NO_HUMAN_LOOP"
+      ],
+      "agentTool": false
+    }
+  }
+}
