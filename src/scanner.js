@@ -22,12 +22,14 @@ const NON_RELEVANT_JSON = new Set([
 // Receivers that are NOT the destructive operations the high-risk-action rules
 // target: in-memory map/collection cleanup, HTTP clients, framework objects,
 // and DOM/browser plumbing. `db.delete(` and `report_store.delete_report(` are
-// still flagged; `map.delete(` and `axios.delete(` are not.
+// still flagged; `map.delete(` and `axios.delete(` are not. `this.delete(` is
+// intentionally NOT benign: calling an action through the current instance is
+// still a call, and item 3's positive fixtures require it to fire.
 const BENIGN_RECEIVERS = new Set([
   "app", "router", "axios", "http", "request", "res", "response", "req",
   "responseCallbacks", "callbacks", "map", "dict", "records", "state", "list",
   "cache", "session", "window", "document", "localStorage", "sessionStorage",
-  "console", "this"
+  "console"
 ]);
 
 const MINIFIED_LINE_THRESHOLD = 1000;
@@ -116,19 +118,132 @@ function detectToolRegistrations(rawContent) {
     .map((s) => s.id);
 }
 
-// First REAL action call in `content`: skips decorators, signature lines and
-// benign receivers, mirroring the filters inside checkProximityLogic (which
-// keeps its own inline copies — do not refactor without re-running the
-// fixture gates). Returns the regex match or null.
-function firstRealActionCall(content, actions) {
+// Marks characters that are inside a // line comment, a /* block */ comment,
+// or a string literal. Template literals (including interpolation) are treated
+// as strings. This is a lexical heuristic, not a parser: it exists so action
+// verbs quoted in prose or comments do not look like calls.
+function nonCodeMask(content) {
+  const mask = new Uint8Array(content.length);
+  let state = "code";
+  for (let i = 0; i < content.length; i++) {
+    const ch = content[i];
+    const next = content[i + 1];
+    if (state === "code") {
+      if (ch === "/" && next === "/") { mask[i] = 1; mask[i + 1] = 1; i++; state = "line"; continue; }
+      if (ch === "/" && next === "*") { mask[i] = 1; mask[i + 1] = 1; i++; state = "block"; continue; }
+      if (ch === "'" || ch === '"') { mask[i] = 1; state = ch; continue; }
+      if (ch === "`") { mask[i] = 1; state = "template"; continue; }
+      continue;
+    }
+    mask[i] = 1;
+    if (state === "line") {
+      if (ch === "\n") state = "code";
+      continue;
+    }
+    if (state === "block") {
+      if (ch === "*" && next === "/") { mask[i + 1] = 1; i++; state = "code"; }
+      continue;
+    }
+    if (ch === "\\") {
+      if (i + 1 < content.length) { mask[i + 1] = 1; i++; }
+      continue;
+    }
+    if (state === "template") {
+      if (ch === "`") state = "code";
+      continue;
+    }
+    if ((state === "'" && ch === "'") || (state === '"' && ch === '"')) state = "code";
+  }
+  return mask;
+}
+
+// Returns the index of the `)` that closes the `(` at openIndex, skipping
+// parentheses inside comments and strings. -1 when unbalanced.
+function matchingParen(content, mask, openIndex) {
+  if (openIndex < 0 || content[openIndex] !== "(") return -1;
+  let depth = 0;
+  for (let i = openIndex; i < content.length; i++) {
+    if (mask[i]) continue;
+    const ch = content[i];
+    if (ch === "(") depth++;
+    else if (ch === ")") {
+      depth--;
+      if (depth === 0) return i;
+    }
+  }
+  return -1;
+}
+
+const JS_FUNCTION_PREFIX = /^\s*(?:export\s+(?:default\s+)?)?(?:async\s+)?(?:declare\s+)?function\s+$/;
+const PY_FUNCTION_PREFIX = /^\s*(?:async\s+)?def\s+$/;
+
+// True when the matched action verb is the *name being declared*, not a call.
+// Handles JS/TS function declarations, class/object methods (a `{` body after
+// the parameter list), and TS interface/abstract/overload signatures (a return
+// type followed by `;`/`,`/`}`). No JS parser is involved.
+function isDefinitionMatch(content, mask, match) {
+  const lineStart = content.lastIndexOf("\n", match.index - 1) + 1;
+  const prefix = content.slice(lineStart, match.index);
+  if (JS_FUNCTION_PREFIX.test(prefix) || PY_FUNCTION_PREFIX.test(prefix)) return true;
+
+  const close = matchingParen(content, mask, match.parenIndex);
+  if (close === -1) return false;
+  let i = close + 1;
+  while (i < content.length && (content[i] === " " || content[i] === "\t")) i++;
+  if (content[i] === "{") return true;
+  if (content[i] !== ":") return false;
+  // `cond ? delete(id) : other()` is a call, not a signature.
+  if (/\?[^?]*$/.test(prefix)) return false;
+  let j = i + 1;
+  while (j < content.length && !/[;{},]/.test(content[j]) && content[j] !== "\n") j++;
+  if (j >= content.length || content[j] === "\n") return false;
+  return content[j] === "{" || content[j] === ";" || content[j] === "," || content[j] === "}";
+}
+
+// Collects action-verb candidates from code only, including bracketed string
+// keys (`obj["delete"](id)`). Comments and string literals are ignored, except
+// for the bracketed-key call shape. Returns the mask so callers can reuse it.
+function collectActionMatches(content, actions) {
+  const mask = nonCodeMask(content);
+  const actionSet = new Set(actions);
+  const matches = [];
   const re = new RegExp(`(?<![\\w$.])(?:([A-Za-z_$][\\w$]*)\\.)?\\b(${actions.join("|")})\\s*\\(`, "g");
   let m;
   while ((m = re.exec(content)) !== null) {
-    if (content[m.index - 1] === "@") continue;
-    const ls = content.lastIndexOf("\n", m.index - 1) + 1;
-    if (/^\s*(?:export\s+(?:default\s+)?)?(?:async\s+function\s+|async\s+def\s+|function\s+|def\s+)/.test(content.slice(ls, m.index))) continue;
-    if (m[1] && BENIGN_RECEIVERS.has(m[1])) continue;
-    return m;
+    if (mask[m.index]) continue;
+    matches.push({
+      index: m.index,
+      action: m[2],
+      receiver: m[1] || null,
+      parenIndex: content.indexOf("(", m.index)
+    });
+  }
+  const bracketRe = /\[\s*(["'])([A-Za-z_$][\w$]*)\1\s*\]\s*\(/g;
+  while ((m = bracketRe.exec(content)) !== null) {
+    if (!actionSet.has(m[2]) || mask[m.index]) continue;
+    const nameOffset = m[0].indexOf(m[2], 1);
+    const before = content.slice(0, m.index);
+    const receiver = /([A-Za-z_$][\w$]*)\.\s*$/.exec(before);
+    matches.push({
+      index: m.index + nameOffset,
+      action: m[2],
+      receiver: receiver ? receiver[1] : null,
+      parenIndex: m.index + m[0].length - 1
+    });
+  }
+  matches.sort((a, b) => a.index - b.index);
+  return { mask, matches };
+}
+
+// First REAL action call in `content`: skips decorators, definitions,
+// comments/strings, and benign receivers. Returns the match or null.
+function firstRealActionCall(content, actions) {
+  const { mask, matches } = collectActionMatches(content, actions);
+  for (const match of matches) {
+    if (content[match.index - 1] === "@") continue;
+    if (isDefinitionMatch(content, mask, match)) continue;
+    if (match.receiver && BENIGN_RECEIVERS.has(match.receiver)) continue;
+    return match;
   }
   return null;
 }
@@ -465,36 +580,25 @@ class Scanner {
     // nearly anything. Resolution throws on dangling refs, but a hand-built
     // rule object could still arrive empty — never scan in that state.
     if (!Array.isArray(rule.actions) || rule.actions.length === 0) return;
-    // Capture the optional receiver (e.g. `db.delete(` vs `map.delete(`) so the
-    // scanner can tell a data-store call from an in-memory/framework call. The
-    // `(?<![\w$.])` lookbehind forces the receiver to be captured whenever a
-    // dotted prefix exists — otherwise `@app.delete(` would re-match as a bare
-    // `delete(` after the dot and dodge both the decorator and benign filters.
-    const actionRegex = new RegExp(`(?<![\\w$.])(?:([A-Za-z_$][\\w$]*)\\.)?\\b(${rule.actions.join("|")})\\s*\\(`, "g");
-    let match;
+    // Capture the optional receiver (e.g. `db.delete(` vs `map.delete(`) so
+    // the scanner can tell a data-store call from an in-memory/framework call.
+    // collectActionMatches also excludes comments, strings, definitions, and
+    // understands bracketed string keys (`obj["delete"](id)`).
+    const { mask, matches } = collectActionMatches(rawContent, rule.actions);
     const window = rule.proximityLines || 15;
     const candidates = [];
 
-    while ((match = actionRegex.exec(rawContent)) !== null) {
+    for (const match of matches) {
       // Python decorators (e.g. `@app.delete(`) register a route — they don't
       // perform a destructive action.
       if (rawContent[match.index - 1] === "@") continue;
 
-      // Function DEFINITIONS (e.g. `def delete(order_id):`) name an action
-      // but don't perform it. Skip the signature line itself — the same way
-      // the `@` check above skips decorators — and let real call sites match
-      // instead. `async def` is included alongside `def` because a Python
-      // coroutine signature is the same non-call as a plain `def`. The
-      // optional `export` prefix covers `export function` / `export default
-      // function` signatures; JS class-method definitions (`delete(id) {`)
-      // have no keyword prefix and stay heuristic (no JS parser added).
-      const lineStart = rawContent.lastIndexOf("\n", match.index - 1) + 1;
-      const linePrefix = rawContent.slice(lineStart, match.index);
-      if (/^\s*(?:export\s+(?:default\s+)?)?(?:async\s+function\s+|async\s+def\s+|function\s+|def\s+)/.test(linePrefix)) continue;
+      // Function/method DEFINITIONS name an action but don't perform it.
+      if (isDefinitionMatch(rawContent, mask, match)) continue;
 
       // In-memory map/collection cleanup, HTTP clients, framework objects, and
       // similar receivers are not the destructive operations this rule targets.
-      const receiver = match[1];
+      const receiver = match.receiver;
       if (receiver && BENIGN_RECEIVERS.has(receiver)) continue;
 
       const upTo = rawContent.slice(0, match.index);
@@ -502,7 +606,7 @@ class Scanner {
       const context = getContextWindow(rawContent, lineNumber, window);
 
       const hasMarker = markers.some((m) => new RegExp(m, "i").test(context));
-      candidates.push({ lineNumber, action: match[2], hasMarker });
+      candidates.push({ lineNumber, action: match.action, hasMarker });
     }
     if (!candidates.length) return;
 

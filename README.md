@@ -192,6 +192,15 @@ treat the finding as informational. The same blindness applies to the
 structural (`ast-same-function`) verdicts for `NO_HUMAN_LOOP`: they cover the
 enclosing function only, never the callee.
 
+JS/TS action detection is also heuristic, not a parser. Function declarations,
+class/object method definitions, TypeScript signatures, comments, and string
+literals are excluded from call matching, and bracketed literal calls such as
+`obj["delete"](id)` are recognised. It still cannot resolve aliasing
+(`const d = db.delete; d(id)`), dynamic dispatch (`db[name](id)`), or
+destructured calls (`const { delete: removeRecord } = db; removeRecord(id)`).
+Treat a clean JS/TS result as "no visible literal call", not "no destructive
+call".
+
 ## License
 
 MIT

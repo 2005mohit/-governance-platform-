@@ -29,6 +29,11 @@
   `--yes` — now exits 2 (previously 1). No scan is run in either case.
 - **Breaking:** unknown options and extra positional arguments are rejected
   with exit 2 (previously ignored or overwritten).
+- JS/TS action detection now ignores function and method definitions,
+  TypeScript signatures, comments, and string literals. It also recognises
+  bracketed literal calls (`obj["delete"](id)`) and calls through `this`.
+  Detection remains heuristic: aliasing, dynamic dispatch, and destructured
+  calls are still not resolved.
 - With the default `--format all`, scans now also write `report.sarif` beside
   `report.json` and `report.html`. Pass `--format json` or `--format html` to
   keep the old two-file output.
