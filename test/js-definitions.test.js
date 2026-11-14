@@ -26,12 +26,19 @@ const EXPECTED = {
   "negative/negative-export.js": ZERO,
   "negative/negative-typescript.ts": ZERO,
   "negative/negative-comments.js": ZERO,
+  "negative/negative-template-text.js": ZERO,
   "positive/positive-db-delete.js": ONE_EACH,
   "positive/positive-await-terminate.js": ONE_EACH,
   "positive/positive-this-delete.js": ONE_EACH,
   "positive/positive-bracket-call.js": ONE_EACH,
   "positive/positive-call-argument.js": ONE_EACH,
   "positive/positive-same-line.js": ONE_EACH,
+  "positive/positive-template-interpolation.js": ONE_EACH,
+  "positive/positive-template-nested.js": ONE_EACH,
+  "positive/positive-template-multiline.js": ONE_EACH,
+  // Documented limitation: regex literals are not lexed. Current behaviour is
+  // that this fixture fires both action rules; recorded, not fixed here.
+  "documented/regex-literal.js": ONE_EACH,
   // Documented taxonomy gap: `send` is not in high_risk_actions.yaml. This is
   // a real call, not a definition, so it must stay at zero until the pack
   // gains that verb. Do not widen detection here.
