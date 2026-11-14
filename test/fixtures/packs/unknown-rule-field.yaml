@@ -1,0 +1,4 @@
+rules:
+  - id: UNKNOWN_RULE_FIELD
+    severity: HIGH
+    pattern: ["typo instead of patterns"]

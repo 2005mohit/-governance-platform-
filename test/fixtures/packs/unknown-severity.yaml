@@ -1,0 +1,4 @@
+rules:
+  - id: ODD_SEVERITY
+    severity: SUPER
+    patterns: ["db\\.delete\\s*\\("]

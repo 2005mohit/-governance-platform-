@@ -1,0 +1,4 @@
+rules:
+  - id: REDOS
+    severity: HIGH
+    patterns: ["(a+)+"]

@@ -1,0 +1,4 @@
+rules:
+  - id: EMPTY_PATTERNS
+    severity: HIGH
+    patterns: []

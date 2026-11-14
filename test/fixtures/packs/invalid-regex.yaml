@@ -1,0 +1,4 @@
+rules:
+  - id: BAD_REGEX
+    severity: HIGH
+    patterns: ["("]

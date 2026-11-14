@@ -1,0 +1,5 @@
+rules:
+  - id: WRONG_TYPES
+    severity: HIGH
+    fileTypes: "code"
+    patterns: "db\\.delete\\s*\\("

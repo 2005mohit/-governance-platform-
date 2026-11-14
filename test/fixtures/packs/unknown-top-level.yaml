@@ -1,0 +1,5 @@
+version: 1
+rules:
+  - id: TOP_LEVEL
+    severity: HIGH
+    patterns: ["db\\.delete\\s*\\("]

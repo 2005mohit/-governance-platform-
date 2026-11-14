@@ -1,0 +1,7 @@
+rules:
+  - id: DUPLICATE
+    severity: HIGH
+    patterns: ["a"]
+  - id: DUPLICATE
+    severity: LOW
+    patterns: ["b"]

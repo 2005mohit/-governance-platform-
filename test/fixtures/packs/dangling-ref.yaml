@@ -1,0 +1,6 @@
+rules:
+  - id: DANGLING
+    severity: HIGH
+    logic: high_risk_action_without_approval
+    actionsRef: missing_taxonomy
+    approvalMarkers: ["human_approval"]
