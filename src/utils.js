@@ -85,6 +85,41 @@ function findLineForMatch(content, regex) {
   };
 }
 
+/**
+ * Splits content once and returns O(log n) line lookup. Scanning used to
+ * recompute `content.slice(0, index).split("\n").length` for every candidate,
+ * which is O(file size) per match and made large files quadratic. The index is
+ * per file and shared by every rule, so each file is split a fixed number of
+ * times regardless of how many actions it contains.
+ */
+function buildLineIndex(content) {
+  const lines = content.split("\n");
+  const starts = new Array(lines.length);
+  let offset = 0;
+  for (let i = 0; i < lines.length; i++) {
+    starts[i] = offset;
+    offset += lines[i].length + 1;
+  }
+  return {
+    lines,
+    lineNumberAt(index) {
+      let lo = 0;
+      let hi = starts.length - 1;
+      let found = 0;
+      while (lo <= hi) {
+        const mid = (lo + hi) >> 1;
+        if (starts[mid] <= index) {
+          found = mid;
+          lo = mid + 1;
+        } else {
+          hi = mid - 1;
+        }
+      }
+      return found + 1;
+    }
+  };
+}
+
 const FUNCTION_BOUNDARY = /^\s*(def\s|function\s|async\s+function\s|class\s|const\s+\w+\s*=\s*(async\s*)?\(|export\s+(default\s+)?function)/;
 
 /**
@@ -96,8 +131,8 @@ const FUNCTION_BOUNDARY = /^\s*(def\s|function\s|async\s+function\s|class\s|cons
  * falls back to the raw line window if no boundaries are found (e.g. a
  * top-level script with no function structure).
  */
-function getContextWindow(content, lineNumber, maxWindow) {
-  const lines = content.split("\n");
+function getContextWindow(content, lineNumber, maxWindow, preSplitLines) {
+  const lines = preSplitLines || content.split("\n");
   let start = Math.max(0, lineNumber - 1 - maxWindow);
   let end = Math.min(lines.length, lineNumber - 1 + maxWindow);
 
@@ -116,4 +151,4 @@ function getContextWindow(content, lineNumber, maxWindow) {
   return lines.slice(start, end).join("\n");
 }
 
-module.exports = { redactPII, maskSecretMatches, findLineForMatch, findFirstNonCommentMatch, getContextWindow };
+module.exports = { redactPII, maskSecretMatches, findLineForMatch, findFirstNonCommentMatch, getContextWindow, buildLineIndex };

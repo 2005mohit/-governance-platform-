@@ -2,7 +2,7 @@
 const fs = require("fs").promises;
 const path = require("path");
 const { spawnSync } = require("child_process");
-const { redactPII, findFirstNonCommentMatch, getContextWindow } = require("./utils");
+const { redactPII, findFirstNonCommentMatch, getContextWindow, buildLineIndex } = require("./utils");
 const { validateRulePack } = require("./rulepack");
 
 const CODE_EXT = [".py", ".js", ".ts", ".jsx", ".tsx"];
@@ -291,12 +291,12 @@ function firstRealActionCall(content, actions) {
   return null;
 }
 
-function isMinifiedContent(content) {
+function isMinifiedContent(content, lines) {
   // Generated/vendored bundles (minified JS, compiled output, serialized blobs)
   // are typically one or a few very long lines. Proximity heuristics are
   // meaningless there — every call appears adjacent to every other — so such
   // files only get the deterministic pattern checks, never the logic rules.
-  return content.split("\n").some((line) => line.length > MINIFIED_LINE_THRESHOLD);
+  return (lines || content.split("\n")).some((line) => line.length > MINIFIED_LINE_THRESHOLD);
 }
 
 class Scanner {
@@ -438,6 +438,12 @@ class Scanner {
 
     this.filesScanned++;
 
+    // Build the per-file index once: every rule reuses the same line array,
+    // line lookup and action-call matches. Per-candidate `slice().split()`
+    // made large files quadratic.
+    const lineIndex = buildLineIndex(rawContent);
+    const fileCache = { lineIndex, actionMatches: new Map() };
+
     // Tool-surface detection runs once per file on raw content, before any
     // rule checks. Only proximity-style rules (NO_HUMAN_LOOP / NO_LOGGING /
     // SAFETY_BYPASS) consult it; pattern, disclosure and project-level rules
@@ -449,12 +455,13 @@ class Scanner {
     if (category === "code") {
       const routeMatch = ROUTE_DEF_RE.exec(rawContent) || ROUTE_CALL_RE.exec(rawContent);
       if (routeMatch) {
+        const routeLine = lineIndex.lineNumberAt(routeMatch.index);
         this.routeFileRecords.push({
           filePath,
           relPath: path.relative(this.rootDir, filePath) || filePath,
           hasAuth: ENDPOINT_AUTH.some((re) => re.test(rawContent)),
-          snippet: (rawContent.split("\n")[rawContent.slice(0, routeMatch.index).split("\n").length - 1] || "").trim().substring(0, 120),
-          lineNumber: rawContent.slice(0, routeMatch.index).split("\n").length
+          snippet: (lineIndex.lines[routeLine - 1] || "").trim().substring(0, 120),
+          lineNumber: routeLine
         });
       }
     }
@@ -462,11 +469,11 @@ class Scanner {
     // IMPORTANT: detection always runs against RAW content, never redacted
     // content. Redaction is applied only when we build the report snippet,
     // right before a finding is recorded — never before matching.
-    const minified = isMinifiedContent(rawContent);
+    const minified = isMinifiedContent(rawContent, lineIndex.lines);
     for (const rule of this.rules) {
       const fileTypes = rule.fileTypes || ["code"];
       if (!fileTypes.includes(category)) continue;
-      this.checkRule(rule, filePath, rawContent, minified);
+      this.checkRule(rule, filePath, rawContent, minified, fileCache);
     }
   }
 
@@ -510,7 +517,7 @@ class Scanner {
     }
   }
 
-  checkRule(rule, filePath, rawContent, minified) {
+  checkRule(rule, filePath, rawContent, minified, fileCache) {
     if (rule.patterns) {
       for (const pattern of rule.patterns) {
         const regex = new RegExp(pattern, "g");
@@ -559,19 +566,19 @@ class Scanner {
     if (minified) return;
 
     if (rule.logic === "high_risk_action_without_approval") {
-      this.checkProximityLogic(rule, filePath, rawContent, rule.approvalMarkers, "no approval marker nearby", this.fileToolSignals.get(filePath) || []);
+      this.checkProximityLogic(rule, filePath, rawContent, rule.approvalMarkers, "no approval marker nearby", this.fileToolSignals.get(filePath) || [], fileCache);
     }
 
     if (rule.logic === "high_risk_action_without_logging") {
-      this.checkProximityLogic(rule, filePath, rawContent, rule.loggingMarkers, "no logging marker nearby", this.fileToolSignals.get(filePath) || []);
+      this.checkProximityLogic(rule, filePath, rawContent, rule.loggingMarkers, "no logging marker nearby", this.fileToolSignals.get(filePath) || [], fileCache);
     }
 
     if (rule.logic === "bypass_flag_near_action") {
-      this.checkBypassLogic(rule, filePath, rawContent, this.fileToolSignals.get(filePath) || []);
+      this.checkBypassLogic(rule, filePath, rawContent, this.fileToolSignals.get(filePath) || [], fileCache);
     }
 
     if (rule.logic === "system_prompt_without_disclosure") {
-      this.checkDisclosureLogic(rule, filePath, rawContent);
+      this.checkDisclosureLogic(rule, filePath, rawContent, fileCache);
     }
   }
 
@@ -579,7 +586,7 @@ class Scanner {
   // whether any of `markers` appears within `proximityLines` of that call —
   // instead of just "anywhere in the file", which produces both false
   // positives and false negatives.
-  checkProximityLogic(rule, filePath, rawContent, markers, reasonSuffix, toolSignals = []) {
+  checkProximityLogic(rule, filePath, rawContent, markers, reasonSuffix, toolSignals = [], fileCache) {
     // Agent-exposed vs general code: a destructive action inside a file with
     // tool-registration signals keeps the agent-oversight claim; without any
     // signal the same gap is relabeled (not skipped) as a general code risk.
@@ -592,9 +599,19 @@ class Scanner {
     // Capture the optional receiver (e.g. `db.delete(` vs `map.delete(`) so
     // the scanner can tell a data-store call from an in-memory/framework call.
     // collectActionMatches also excludes comments, strings, definitions, and
-    // understands bracketed string keys (`obj["delete"](id)`).
-    const { mask, matches } = collectActionMatches(rawContent, rule.actions);
+    // understands bracketed string keys (`obj["delete"](id)`). The match set
+    // is cached per file and action list: approval and logging rules usually
+    // share the same taxonomy, and rescanning the mask per rule was wasted work.
+    const lines = fileCache.lineIndex.lines;
+    const cacheKey = rule.actions.join("\u0000");
+    let actionMatches = fileCache.actionMatches.get(cacheKey);
+    if (!actionMatches) {
+      actionMatches = collectActionMatches(rawContent, rule.actions);
+      fileCache.actionMatches.set(cacheKey, actionMatches);
+    }
+    const { mask, matches } = actionMatches;
     const window = rule.proximityLines || 15;
+    const markerRegexes = markers.map((m) => new RegExp(m, "i"));
     const candidates = [];
 
     for (const match of matches) {
@@ -610,11 +627,10 @@ class Scanner {
       const receiver = match.receiver;
       if (receiver && BENIGN_RECEIVERS.has(receiver)) continue;
 
-      const upTo = rawContent.slice(0, match.index);
-      const lineNumber = upTo.split("\n").length;
-      const context = getContextWindow(rawContent, lineNumber, window);
+      const lineNumber = fileCache.lineIndex.lineNumberAt(match.index);
+      const context = getContextWindow(rawContent, lineNumber, window, lines);
 
-      const hasMarker = markers.some((m) => new RegExp(m, "i").test(context));
+      const hasMarker = markerRegexes.some((re) => re.test(context));
       candidates.push({ lineNumber, action: match.action, hasMarker });
     }
     if (!candidates.length) return;
@@ -636,13 +652,11 @@ class Scanner {
       const verdict = astVerdicts ? astVerdicts.get(c.lineNumber) : undefined;
       if (!c.hasMarker) {
         if (verdict && verdict.gated) continue; // AST same-function gate beyond the window
-        const lines = rawContent.split("\n");
         const line = (lines[c.lineNumber - 1] || "").trim().substring(0, 120);
         this.addFinding(rule, filePath, line, c.lineNumber, `Logic: ${reasonSuffix}`, [], toolExposure, methodFor(c.lineNumber));
         return;
       }
       if (verdict && !verdict.gated) {
-        const lines = rawContent.split("\n");
         const line = (lines[c.lineNumber - 1] || "").trim().substring(0, 120);
         this.addFinding(rule, filePath, line, c.lineNumber, `Logic: ${reasonSuffix} (approval present but not gating)`, [], toolExposure, "ast-same-function");
         return;
@@ -655,19 +669,19 @@ class Scanner {
   // high-risk action call — taxonomy verbs, minus def/decorator/benign
   // matches — inside the function-scoped window. Bypass patterns compile
   // case-insensitively (True/true/False/false). One finding per rule/file.
-  checkBypassLogic(rule, filePath, rawContent, toolSignals = []) {
+  checkBypassLogic(rule, filePath, rawContent, toolSignals = [], fileCache) {
     if (!Array.isArray(rule.actions) || rule.actions.length === 0) return;
     if (!Array.isArray(rule.bypassPatterns) || rule.bypassPatterns.length === 0) return;
     const exposure = toolSignals.length > 0 ? "agent-tool" : "general-code";
     const window = rule.proximityLines || 15;
+    const lines = fileCache.lineIndex.lines;
     for (const bp of rule.bypassPatterns) {
       const flagRe = new RegExp(bp, "gi");
       let m;
       while ((m = flagRe.exec(rawContent)) !== null) {
-        const lineNumber = rawContent.slice(0, m.index).split("\n").length;
-        const context = getContextWindow(rawContent, lineNumber, window);
+        const lineNumber = fileCache.lineIndex.lineNumberAt(m.index);
+        const context = getContextWindow(rawContent, lineNumber, window, lines);
         if (firstRealActionCall(context, rule.actions)) {
-          const lines = rawContent.split("\n");
           const line = (lines[lineNumber - 1] || "").trim().substring(0, 120);
           this.addFinding(rule, filePath, line, lineNumber, "Logic: bypass flag near high-risk action", [], exposure, "proximity-heuristic");
           return;
@@ -758,11 +772,12 @@ class Scanner {
     }
   }
 
-  checkDisclosureLogic(rule, filePath, rawContent) {
+  checkDisclosureLogic(rule, filePath, rawContent, fileCache) {
     // Find an actual prompt BODY: a prompt-name assignment to a string, an
     // OpenAI-style "role": "system" entry, or a system message in a dict.
     let prompt = null;
     let idx = 0;
+    const lines = fileCache.lineIndex.lines;
 
     for (const re of PROMPT_DEF_RE) {
       const m = re.exec(rawContent);
@@ -777,10 +792,11 @@ class Scanner {
           if (found) body = found.body;
         }
         if (body) {
+          const promptLine = fileCache.lineIndex.lineNumberAt(m.index);
           prompt = {
-            lineNumber: rawContent.slice(0, m.index).split("\n").length,
+            lineNumber: promptLine,
             body,
-            lead: textAtLine(rawContent, m.index)
+            lead: (lines[promptLine - 1] || "").trim().substring(0, 120)
           };
         }
         break;
@@ -792,7 +808,6 @@ class Scanner {
     // assistant/system/bot/agent — i.e. actual prompt text written inline,
     // not prose that merely mentions "system" somewhere.
     if (!prompt) {
-      const lines = rawContent.split("\n");
       for (let i = 0; i < lines.length; i++) {
         if (YOU_ARE_RE.test(lines[i]) && /\b(assistant|system|bot|agent)\b/i.test(lines[i])) {
           prompt = { lineNumber: i + 1, body: lines.slice(i, i + 8).join("\n"), lead: lines[i].substring(0, 40) };
@@ -888,12 +903,6 @@ function extractSystemContent(content, fromIndex) {
   const valueStart = fromIndex + m.index + m[0].length - 1;
   const body = extractStringAt(content, valueStart);
   return body ? { body } : null;
-}
-
-function textAtLine(content, index) {
-  const lines = content.split("\n");
-  const lineNumber = content.slice(0, index).split("\n").length;
-  return (lines[lineNumber - 1] || "").trim().substring(0, 120);
 }
 
 function disclosurePresent(rule, body) {

@@ -64,3 +64,9 @@
 - Added `npm test`, including fixtures that assert the article mapping for
   `SENSITIVE_DATA`, `SAFETY_BYPASS`, `UNSAFE_DESERIALIZE`, `ERROR_LEAKAGE`,
   and `CORS_WILDCARD`.
+- Large files no longer scan quadratically. Candidate line numbers come from a
+  per-file line index, the file is split once per rule instead of once per
+  action, context windows reuse the same line array, and action-call matches
+  are cached per file and action list. AST queries were already one helper run
+  per file. On the 20,000-call `db.delete()` corpus case the scan dropped from
+  ~395 s / 319 MB peak RSS to ~15.6 s / 79 MB, with an identical finding set.
