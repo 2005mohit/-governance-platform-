@@ -195,11 +195,15 @@ enclosing function only, never the callee.
 JS/TS action detection is also heuristic, not a parser. Function declarations,
 class/object method definitions, TypeScript signatures, comments, and string
 literals are excluded from call matching, and bracketed literal calls such as
-`obj["delete"](id)` are recognised. It still cannot resolve aliasing
-(`const d = db.delete; d(id)`), dynamic dispatch (`db[name](id)`), or
-destructured calls (`const { delete: removeRecord } = db; removeRecord(id)`).
-Treat a clean JS/TS result as "no visible literal call", not "no destructive
-call".
+`obj["delete"](id)` are recognised. Template literal text is excluded but
+`${...}` interpolation is scanned as code, including nested and multi-line
+templates, so `` `${db.delete(id)}` `` is detected while `` `delete(id)` `` is
+not. Regex literals are *not* lexed as their own state: a pattern such as
+`/delete(id)/` is currently treated as code and can fire. It still cannot
+resolve aliasing (`const d = db.delete; d(id)`), dynamic dispatch
+(`db[name](id)`), or destructured calls
+(`const { delete: removeRecord } = db; removeRecord(id)`). Treat a clean JS/TS
+result as "no visible literal call", not "no destructive call".
 
 ## License
 

@@ -119,40 +119,83 @@ function detectToolRegistrations(rawContent) {
 }
 
 // Marks characters that are inside a // line comment, a /* block */ comment,
-// or a string literal. Template literals (including interpolation) are treated
-// as strings. This is a lexical heuristic, not a parser: it exists so action
-// verbs quoted in prose or comments do not look like calls.
+// a string literal, or the literal text of a template. Template interpolation
+// (`${...}`) is code, including nested templates inside an interpolation.
+// This is a lexical heuristic, not a parser: it exists so action verbs quoted
+// in prose or comments do not look like calls.
 function nonCodeMask(content) {
   const mask = new Uint8Array(content.length);
-  let state = "code";
-  for (let i = 0; i < content.length; i++) {
+  const stack = [{ type: "code", braceDepth: 0 }];
+  let i = 0;
+  while (i < content.length) {
+    const top = stack[stack.length - 1];
     const ch = content[i];
     const next = content[i + 1];
-    if (state === "code") {
-      if (ch === "/" && next === "/") { mask[i] = 1; mask[i + 1] = 1; i++; state = "line"; continue; }
-      if (ch === "/" && next === "*") { mask[i] = 1; mask[i + 1] = 1; i++; state = "block"; continue; }
-      if (ch === "'" || ch === '"') { mask[i] = 1; state = ch; continue; }
-      if (ch === "`") { mask[i] = 1; state = "template"; continue; }
+
+    if (top.type === "code") {
+      if (ch === "/" && next === "/") { mask[i] = mask[i + 1] = 1; i += 2; stack.push({ type: "line" }); continue; }
+      if (ch === "/" && next === "*") { mask[i] = mask[i + 1] = 1; i += 2; stack.push({ type: "block" }); continue; }
+      if (ch === "'" || ch === '"') { mask[i] = 1; i++; stack.push({ type: ch === "'" ? "single" : "double" }); continue; }
+      if (ch === "`") { mask[i] = 1; i++; stack.push({ type: "template" }); continue; }
+      if (stack.length > 1) {
+        if (ch === "{") top.braceDepth++;
+        else if (ch === "}") {
+          if (top.braceDepth === 0) {
+            // Close `${ ... }` and resume the surrounding template text.
+            mask[i] = 1;
+            i++;
+            stack.pop();
+            continue;
+          }
+          top.braceDepth--;
+        }
+      }
+      i++;
+      continue;
+    }
+
+    if (top.type === "line") {
+      if (ch === "\n") { stack.pop(); i++; continue; }
+      mask[i] = 1;
+      i++;
+      continue;
+    }
+
+    if (top.type === "block") {
+      mask[i] = 1;
+      if (ch === "*" && next === "/") { mask[i + 1] = 1; i += 2; stack.pop(); continue; }
+      i++;
+      continue;
+    }
+
+    if (top.type === "single" || top.type === "double") {
+      mask[i] = 1;
+      if (ch === "\\") {
+        if (i + 1 < content.length) mask[i + 1] = 1;
+        i += 2;
+        continue;
+      }
+      if ((top.type === "single" && ch === "'") || (top.type === "double" && ch === '"')) stack.pop();
+      i++;
+      continue;
+    }
+
+    // Template literal text.
+    if (ch === "\\") {
+      mask[i] = 1;
+      if (i + 1 < content.length) mask[i + 1] = 1;
+      i += 2;
+      continue;
+    }
+    if (ch === "`") { mask[i] = 1; i++; stack.pop(); continue; }
+    if (ch === "$" && next === "{") {
+      mask[i] = mask[i + 1] = 1;
+      i += 2;
+      stack.push({ type: "code", braceDepth: 0 });
       continue;
     }
     mask[i] = 1;
-    if (state === "line") {
-      if (ch === "\n") state = "code";
-      continue;
-    }
-    if (state === "block") {
-      if (ch === "*" && next === "/") { mask[i + 1] = 1; i++; state = "code"; }
-      continue;
-    }
-    if (ch === "\\") {
-      if (i + 1 < content.length) { mask[i + 1] = 1; i++; }
-      continue;
-    }
-    if (state === "template") {
-      if (ch === "`") state = "code";
-      continue;
-    }
-    if ((state === "'" && ch === "'") || (state === '"' && ch === '"')) state = "code";
+    i++;
   }
   return mask;
 }

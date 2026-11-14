@@ -32,8 +32,12 @@
 - JS/TS action detection now ignores function and method definitions,
   TypeScript signatures, comments, and string literals. It also recognises
   bracketed literal calls (`obj["delete"](id)`) and calls through `this`.
-  Detection remains heuristic: aliasing, dynamic dispatch, and destructured
-  calls are still not resolved.
+  Template literal text is ignored while `${...}` interpolation is scanned as
+  code (nested and multi-line templates included), so calls inside template
+  substitutions are detected. Regex literals are not lexed and can still
+  produce a false positive; this is documented, not fixed. Detection remains
+  heuristic: aliasing, dynamic dispatch, and destructured calls are still not
+  resolved.
 - With the default `--format all`, scans now also write `report.sarif` beside
   `report.json` and `report.html`. Pass `--format json` or `--format html` to
   keep the old two-file output.
