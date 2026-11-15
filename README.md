@@ -10,7 +10,7 @@ certified audit.
 
 | Technology      |             Use Case                                                                 |
 | **Node.js**     | Runtime environment for the CLI tool |
-| **npm**         | Package manager and distribution (install via `npx`/`npm install -g`)                |
+| **npm**         | Package manager; install from source with `npm install -g .` (not yet published to the registry) |
 | **Command parsing** | Small hand-rolled parser in `src/cli.js` (no `argparse` dependency)    |
 | **js-yaml**     | Parses the YAML rule pack into JS objects for the rule engine                       |
 | **cli.js**(entry point) | Bootstraps the tool, reads user input, routes to scanner                     |
@@ -18,7 +18,7 @@ certified audit.
 | **reporter.js** | Formats scan results into output reports (console/JSON/HTML)                        |
 | **agreement.js** | Handles user consent/terms acknowledgment before running a scan on a system        |
 | **utils.js**     | Shared helper functions (file I/O, path handling, common logic)                    |
-| **rules/ (YAML files)**| Stores the editable EU AI Act rule pack (an India pack is planned, not shipped) — decoupled from core code |
+| **rules/ (YAML files)**| Stores the editable EU AI Act rule pack. India is **planned, not shipped**: there is no pack-selection flag and no second pack. |
 | **package.json / package-lock.json** | Defines dependencies, scripts, and versioning for reproducible installs |
 
 
@@ -39,30 +39,56 @@ certified audit.
 - `js-yaml` is pinned to `^4.3.2`, past GHSA-2883-xcg3-v3hh (high severity;
   `maxTotalMergeKeys` did not limit CPU for empty merge sources in 4.0.0–4.3.1).
 
+## Install
+
+The package is **not published to the npm registry yet**, so `npx
+ai-risk-snapshot` fails with a 404. Install from source:
+
+```bash
+git clone <repository-url> ai-risk-snapshot
+cd ai-risk-snapshot
+npm install --omit=dev
+npm install -g .        # optional; puts `ai-risk-snapshot` on your PATH
+```
+
+Without the global install, run the same commands through `node src/cli.js`.
+
+Publishing to npm is pending. There is no account, no telemetry, and no
+network call in any mode.
+
 ## Usage
 
 ```bash
+# Show options and exit 0
+ai-risk-snapshot --help
+
+# Print the version and exit 0
+ai-risk-snapshot --version
+
 # Scan the current directory, interactive consent prompt
-npx ai-risk-snapshot
+ai-risk-snapshot
 
 # Scan a specific path
-npx ai-risk-snapshot ./my-agent-project
+ai-risk-snapshot ./my-agent-project
 
 # Non-interactive (e.g. CI) — --yes is an explicit act of agreement to the terms
-npx ai-risk-snapshot --yes
+ai-risk-snapshot --yes
 
 # Custom output location
-npx ai-risk-snapshot --output ./scan-results
+ai-risk-snapshot --output ./scan-results
 
 # Include test/fixture directories (excluded by default)
-npx ai-risk-snapshot --include-tests
+ai-risk-snapshot --include-tests
 
 # Write only one artefact (json, html, or sarif)
-npx ai-risk-snapshot --format sarif
+ai-risk-snapshot --format sarif
 
 # CI: accept the terms and fail the build on HIGH or worse
-npx ai-risk-snapshot . --yes --fail-on high
+ai-risk-snapshot . --yes --fail-on high
 ```
+
+Unknown options print `Unknown option: <flag>` and exit 2; they are never
+silently ignored.
 
 Report is written to `./ai-risk-snapshot-report/` (or your `--output` path)
 in the current working directory. The default `--format all` writes
@@ -72,10 +98,12 @@ in the current working directory. The default `--format all` writes
 ## Rule-pack validation
 
 The shipped pack (`rules/eu_ai_act.yaml` and its `high_risk_actions.yaml`
-taxonomy) is validated at startup, before any file is scanned. A custom pack
-is validated whenever a `Scanner` is constructed. Invalid packs exit `2` and
-write no report files. Each message names the pack path, the rule id (when it
-is known), the field, the problem, and the fix, for example:
+taxonomy) is validated at startup, before any file is scanned. The validator
+also runs whenever a `Scanner` is constructed from code, but the CLI has no
+`--pack` flag and loads only the shipped EU pack; an India pack is planned,
+not shipped. Invalid packs exit `2` and write no report files. Each message
+names the pack path, the rule id (when it is known), the field, the problem,
+and the fix, for example:
 
 ```
 Rule pack ".../rules/eu_ai_act.yaml" is invalid:
@@ -122,6 +150,9 @@ none` never fails on findings.
 non-interactively; without it, a non-interactive run exits 2 instead of
 scanning. `--fail-on` turns findings into a failing build; without it, the
 command exits 0 even when findings exist.
+
+`--help` and `--version` print to stdout and exit `0` without scanning,
+without prompting for consent, and without writing any file.
 
 ## Output formats
 
@@ -174,7 +205,8 @@ The scanner never uploads anything. If you choose to upload the SARIF file,
 do it in a separate step, for example:
 
 ```yaml
-- run: npx ai-risk-snapshot . --yes --format sarif --output scan-results
+- run: npm install -g .
+- run: ai-risk-snapshot . --yes --format sarif --output scan-results
 - uses: github/codeql-action/upload-sarif@v3
   with:
     sarif_file: scan-results/report.sarif
@@ -204,6 +236,27 @@ This scan checks what's visible in source/config files:
 - Unsafe deserialization / dynamic execution patterns (`UNSAFE_DESERIALIZE`)
 - Error details returned to clients (`ERROR_LEAKAGE`)
 - Disabled validation flags near a high-risk action (`SAFETY_BYPASS`)
+
+### Agent frameworks recognised
+
+Framework detection is deliberately narrow. It looks for five tool-registration
+shapes and nothing else:
+
+| Recognised | What it matches |
+|---|---|
+| LangChain (Python) | `@tool`, `StructuredTool(...)`, `DynamicTool(...)`, `Tool(...)` |
+| CrewAI | `tools=[...]`, `"tools": [...]` |
+| AutoGen | `function_map={...}`, `register_function(...)` / `register_for_llm(...)` / `register_for_execution(...)` |
+| OpenAI function/tool schemas | `"type": "function"` |
+| LangChain.js | `tool(...)` with a function or `name` argument |
+
+Not recognised: **LangGraph, the OpenAI Agents SDK, Anthropic tool use, the
+Model Context Protocol (MCP), Semantic Kernel, LlamaIndex, and Pydantic AI.**
+In a repository that uses only one of those, generic patterns still fire
+(hardcoded keys, unsafe deserialisation, missing logging near a recognised
+destructive call), but every finding is labelled `general-code` rather than
+`agent-tool`, and the scanner never names the framework it thinks it is
+looking at. The report has no framework field.
 
 Article references are **review prompts, not compliance determinations**.
 Articles 9, 12, 14 and 15 apply only to systems classified as high-risk under
@@ -246,6 +299,16 @@ resolve aliasing (`const d = db.delete; d(id)`), dynamic dispatch
 (`db[name](id)`), or destructured calls
 (`const { delete: removeRecord } = db; removeRecord(id)`). Treat a clean JS/TS
 result as "no visible literal call", not "no destructive call".
+
+`IDENTITY_KEY` recognises a fixed set of literal shapes: legacy `sk-…` keys,
+`sk-proj-…` and `sk-ant-…` keys, AWS `AKIA…` access-key ids, an RSA private-key
+header, an `AWS_SECRET_ACCESS_KEY` assignment, and GitHub `ghp_…` tokens. It
+does not recognise every provider or every prefix: Google, Azure, Cohere,
+Mistral and Hugging Face keys, OpenAI `sk-svcacct-…` / `sk-admin-…` variants,
+and fine-grained GitHub `github_pat_…` tokens are not matched, and a key split
+by string concatenation is not reassembled. The `sk-proj-` and `sk-ant-`
+patterns require at least 20 characters after the prefix, so short placeholders
+do not fire, but a long dummy value will.
 
 ## License
 

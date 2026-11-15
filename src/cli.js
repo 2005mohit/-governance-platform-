@@ -12,9 +12,19 @@ const { FAIL_ON_LEVELS, findingsAtOrAbove, isValidFailOn } = require("./exitcode
 const pkg = require("../package.json");
 
 const USAGE =
-  "Usage: ai-risk-snapshot [path] [--yes] [--include-tests] [--output <dir>]\n" +
-  "                        [--fail-on <critical|high|medium|low|none>]\n" +
-  "                        [--format <json|html|sarif|all>]";
+  "Usage: ai-risk-snapshot [path] [options]\n" +
+  "\n" +
+  "Options:\n" +
+  "  -y, --yes                    Accept the terms without prompting\n" +
+  "  --include-tests              Also scan test and fixture directories\n" +
+  "  -o, --output <dir>           Where to write the report\n" +
+  "  --format <json|html|sarif|all>\n" +
+  "                               Which artefacts to write (default: all)\n" +
+  "  --fail-on <critical|high|medium|low|none>\n" +
+  "                               Exit 1 if a finding is at or above this level\n" +
+  "                               (default: none)\n" +
+  "  -h, --help                   Show this help and exit\n" +
+  "  -V, --version                Print the version and exit";
 
 const FORMATS = ["json", "html", "sarif", "all"];
 
@@ -25,7 +35,9 @@ function parseArgs(argv) {
     yes: false,
     includeTests: false,
     failOn: "none",
-    format: "all"
+    format: "all",
+    help: false,
+    version: false
   };
 
   let positionalSeen = false;
@@ -34,6 +46,10 @@ function parseArgs(argv) {
     const arg = args[i];
     if (arg === "--yes" || arg === "-y") {
       opts.yes = true;
+    } else if (arg === "--help" || arg === "-h") {
+      opts.help = true;
+    } else if (arg === "--version" || arg === "-V") {
+      opts.version = true;
     } else if (arg === "--include-tests") {
       opts.includeTests = true;
     } else if (arg === "--scan") {
@@ -72,7 +88,7 @@ function parseArgs(argv) {
       opts.format = normalized;
       i++;
     } else if (arg.startsWith("-")) {
-      return { error: `Unknown option: ${arg}` };
+      return { error: `Unknown option: ${arg}. Run with --help for usage.` };
     } else if (positionalSeen) {
       return { error: `Unexpected extra argument: ${arg}` };
     } else {
@@ -155,6 +171,18 @@ async function main() {
     return;
   }
   const opts = parsed.opts;
+
+  // --help and --version are answered before anything touches the filesystem,
+  // so they work from a directory that is not scannable and never prompt for
+  // consent.
+  if (opts.help) {
+    console.log(USAGE);
+    return;
+  }
+  if (opts.version) {
+    console.log(`${pkg.name} ${pkg.version}`);
+    return;
+  }
 
   try {
     const stat = await fs.promises.stat(opts.rootDir);

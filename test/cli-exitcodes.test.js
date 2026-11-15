@@ -145,6 +145,26 @@ function main() {
     const result = runCli([FIXTURES.clean, "--yes", "--wat", "-o", uniquePath("unknown")]);
     assertExit(result, 2, "unknown option");
     assert.match(result.stderr, /Unknown option: --wat/);
+    assert.match(result.stderr, /Run with --help for usage/);
+  }
+
+  // 7a. --help prints usage to stdout and exits 0, before consent, before
+  //     the path is checked, and without writing a report.
+  {
+    const result = runCli([path.join(TMP_ROOT, "no-such-dir"), "--help"]);
+    assertExit(result, 0, "--help");
+    assert.match(result.stdout, /Usage: ai-risk-snapshot \[path\] \[options\]/);
+    assert.match(result.stdout, /--version/);
+    assert.strictEqual(result.stderr, "", "--help must not write to stderr");
+  }
+
+  // 7b. --version prints the package version and exits 0.
+  {
+    const version = require(path.join(ROOT, "package.json")).version;
+    const result = runCli(["--version"]);
+    assertExit(result, 0, "--version");
+    assert.strictEqual(result.stdout.trim(), `ai-risk-snapshot ${version}`);
+    assert.strictEqual(result.stderr, "", "--version must not write to stderr");
   }
 
   // 8. Nonexistent scan path is a config error.

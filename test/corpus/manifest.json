@@ -55,6 +55,50 @@
     "type": "rule"
   },
   {
+    "name": "id_pos_skproj",
+    "files": {
+      ".env": "OPENAI_API_KEY=sk-proj-AbCdEfGhIjKlMnOpQrStUvWxYz0123456789AbCd\n"
+    },
+    "target": "IDENTITY_KEY",
+    "expect": true,
+    "kind": "pos",
+    "note": "OpenAI project-key shape sk-proj-*; added when the pattern was extended",
+    "type": "rule"
+  },
+  {
+    "name": "id_neg_skproj_short",
+    "files": {
+      ".env": "OPENAI_API_KEY=sk-proj-abc123\n"
+    },
+    "target": "IDENTITY_KEY",
+    "expect": false,
+    "kind": "neg",
+    "note": "sk-proj- prefix with a placeholder-length suffix; the 20-character floor must reject it",
+    "type": "rule"
+  },
+  {
+    "name": "id_pos_skant",
+    "files": {
+      ".env": "ANTHROPIC_API_KEY=sk-ant-api03-AbCdEfGhIjKlMnOpQrStUvWxYz0123456789\n"
+    },
+    "target": "IDENTITY_KEY",
+    "expect": true,
+    "kind": "pos",
+    "note": "Anthropic API-key shape sk-ant-*; added when the pattern was extended",
+    "type": "rule"
+  },
+  {
+    "name": "id_neg_skant_short",
+    "files": {
+      ".env": "ANTHROPIC_API_KEY=sk-ant-api03-short\n"
+    },
+    "target": "IDENTITY_KEY",
+    "expect": false,
+    "kind": "neg",
+    "note": "sk-ant- prefix with a placeholder-length suffix; the 20-character floor must reject it",
+    "type": "rule"
+  },
+  {
     "name": "id_ev_projkey",
     "files": {
       ".env": "OPENAI_API_KEY=sk-proj-AbCdEfGhIjKlMnOpQrStUvWxYz0123456789\n"

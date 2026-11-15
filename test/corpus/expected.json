@@ -8,6 +8,10 @@
       "id_neg_env_ref",
       "id_neg_placeholder",
       "id_neg_comment",
+      "id_pos_skproj",
+      "id_neg_skproj_short",
+      "id_pos_skant",
+      "id_neg_skant_short",
       "iam_pos_tf",
       "iam_neg_specific",
       "iam_neg_k8s",
@@ -119,8 +123,30 @@
       "rules": [],
       "agentTool": false
     },
-    "id_ev_projkey": {
+    "id_pos_skproj": {
+      "rules": [
+        "IDENTITY_KEY"
+      ],
+      "agentTool": false
+    },
+    "id_neg_skproj_short": {
       "rules": [],
+      "agentTool": false
+    },
+    "id_pos_skant": {
+      "rules": [
+        "IDENTITY_KEY"
+      ],
+      "agentTool": false
+    },
+    "id_neg_skant_short": {
+      "rules": [],
+      "agentTool": false
+    },
+    "id_ev_projkey": {
+      "rules": [
+        "IDENTITY_KEY"
+      ],
       "agentTool": false
     },
     "id_ev_concat": {
