@@ -2,6 +2,7 @@
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const { buildDashboardHTML } = require("./dashboard");
 const pkg = require("../package.json");
 
 const SEVERITY_PENALTY = { CRITICAL: 25, HIGH: 15, MEDIUM: 5, LOW: 2 };
@@ -530,7 +531,7 @@ function ratingExplanation(findings) {
   return { why: "no CRITICAL or HIGH finding detected — rating follows the scan score" };
 }
 
-function buildHTML(findings, score, meta, reportData) {
+function buildLegacyHTML(findings, score, meta, reportData) {
   const band = getBand(score, findings);
   const bandLabel = band.label;
   const ratingWhy = ratingExplanation(findings).why;
@@ -736,6 +737,12 @@ function buildHTML(findings, score, meta, reportData) {
   </script>
 </body>
 </html>`;
+}
+
+// The shipped HTML report is the dashboard in src/dashboard.js. The previous
+// long-form renderer is kept above as buildLegacyHTML for reference only.
+function buildHTML(findings, score, meta, reportData) {
+  return buildDashboardHTML(findings, score, meta, reportData, { band: getBand(score, findings) });
 }
 
 function escapeHtml(str) {

@@ -11,7 +11,7 @@
   },
   "scripts": {
     "start": "node src/cli.js",
-    "test": "node test/rules.test.js && node test/exitcodes.test.js && node test/cli-exitcodes.test.js && node test/js-definitions.test.js && node test/sarif.test.js && node test/rulepack.test.js && node test/line-index.test.js && node test/corpus.test.js"
+    "test": "node test/rules.test.js && node test/exitcodes.test.js && node test/cli-exitcodes.test.js && node test/js-definitions.test.js && node test/sarif.test.js && node test/rulepack.test.js && node test/line-index.test.js && node test/corpus.test.js && node test/dashboard.test.js"
   },
   "dependencies": {
     "js-yaml": "^4.3.2"
