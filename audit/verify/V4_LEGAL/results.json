@@ -1,0 +1,291 @@
+{
+  "generatedBy": "audit/verify/V4_LEGAL/",
+  "generatedAt": "2026-11-15",
+  "status": "AUTHOR-REVIEWED vs PRIMARY TEXT, NOT COUNSEL-REVIEWED",
+  "rulePackSha256": "9c0f00b8e00511275d0fef86f3acc70db48dab31037c77b80296e8b761062a34",
+  "scope": {
+    "euRulesMapped": 12,
+    "indiaRulesMapped": 10,
+    "indiaRulesImplemented": 0,
+    "note": "Every EU rule id in rules/eu_ai_act.yaml is mapped to at least one provision. The India rows are proposed ids from audit/INDIA_PACK_DESIGN.md; no India rule is present in the current rule pack."
+  },
+  "sources": [
+    {
+      "instrument": "Regulation (EU) 2024/1689 (AI Act)",
+      "urlRead": "https://artificialintelligenceact.eu/article/9/ ; /10/ ; /12/ ; /14/ ; /15/ ; /50/",
+      "retrieved": "2026-11-15",
+      "officialSourceAttempted": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32024R1689",
+      "officialSourceResult": "HTTP 202 with an empty body; the PDF endpoint returned 0 bytes. The Official Journal rendering was not read directly.",
+      "provenanceNote": "Quotes were checked against a third-party reproduction of the primary text, not against the Official Journal PDF."
+    },
+    {
+      "instrument": "Digital Personal Data Protection Act, 2023 (No. 22 of 2023)",
+      "urlRead": "https://www.meity.gov.in/static/uploads/2024/06/2bf1f0e9f04e6fb4f8fef35e82c42aa5.pdf",
+      "retrieved": "2026-11-15",
+      "extraction": "pypdf 6.16.2; 21 pages; 63686 characters",
+      "provenanceNote": "Gazette text; section numbering cross-checked against the PDF body."
+    },
+    {
+      "instrument": "CERT-In Directions under s.70B(6), IT Act, dated 28 April 2022",
+      "urlRead": "https://www.cert-in.org.in/PDF/CERT-In_Directions_70B_28.04.2022.pdf",
+      "retrieved": "2026-11-15",
+      "extraction": "pypdf 6.16.2; 8 pages; 13178 characters",
+      "provenanceNote": "Paragraph numbering follows the PDF body. Incident reporting is paragraph (ii); log retention is paragraph (iv)."
+    },
+    {
+      "instrument": "Digital Personal Data Protection Rules, 2025",
+      "urlRead": null,
+      "retrieved": null,
+      "provenanceNote": "NOT RETRIEVED. Rule 7 on breach notification is not quoted and not reviewed. No claim is made about it."
+    }
+  ],
+  "euRows": [
+    {
+      "rule": "IDENTITY_KEY",
+      "provision": "Art. 15(1)",
+      "quote": "achieve an appropriate level of accuracy, robustness, and cybersecurity",
+      "quoteWords": 9,
+      "dutyHolder": "Provider",
+      "highRiskOnly": true,
+      "mappingStrength": "weak",
+      "rationale": "Credential hygiene is one input to cybersecurity; the provision names no credential, storage, or rotation requirement."
+    },
+    {
+      "rule": "IAM_WILDCARD",
+      "provision": "Art. 15(7)",
+      "quote": "resilient against attempts by unauthorised third parties to alter their use, outputs",
+      "quoteWords": 12,
+      "dutyHolder": "Provider",
+      "highRiskOnly": true,
+      "mappingStrength": "weak",
+      "rationale": "Over-broad cloud IAM is an access-control weakness, not by itself an AI-specific manipulation path."
+    },
+    {
+      "rule": "NO_HUMAN_LOOP",
+      "provision": "Art. 14(1); Art. 14(4)(d)",
+      "quote": "effectively overseen by natural persons during the period in which they are in use",
+      "quoteWords": 14,
+      "dutyHolder": "Provider (design); deployer (operation)",
+      "highRiskOnly": true,
+      "mappingStrength": "strong",
+      "rationale": "Approval-marker proximity is close to the design duty and the ability to refrain; oversight outside the file cannot be seen."
+    },
+    {
+      "rule": "NO_LOGGING",
+      "provision": "Art. 12(1)",
+      "quote": "technically allow for the automatic recording of events (logs) over the lifetime",
+      "quoteWords": 12,
+      "dutyHolder": "Provider",
+      "highRiskOnly": true,
+      "mappingStrength": "strong",
+      "rationale": "The rule tests the existence of logging near a high-risk action, not retention, integrity, or Art. 12(3) content."
+    },
+    {
+      "rule": "NO_AI_DISCLOSURE",
+      "provision": "Art. 50(1)",
+      "quote": "natural persons concerned are informed that they are interacting with an AI system",
+      "quoteWords": 13,
+      "dutyHolder": "Provider (Art. 50(1)); deployer (Art. 50(3)-(4))",
+      "highRiskOnly": false,
+      "mappingStrength": "moderate",
+      "rationale": "The rule reads a system prompt; the provision is about what the natural person is told, which is often rendered elsewhere."
+    },
+    {
+      "rule": "HTTP_NO_AUTH",
+      "provision": "Art. 15(7)",
+      "quote": "resilient against attempts by unauthorised third parties to alter their use, outputs",
+      "quoteWords": 12,
+      "dutyHolder": "Provider",
+      "highRiskOnly": true,
+      "mappingStrength": "weak",
+      "rationale": "An unauthenticated route is general application security; the rule does not show the route reaches a model."
+    },
+    {
+      "rule": "AUTO_DECISION",
+      "provision": "Art. 14(4)(d); Art. 14(5)",
+      "quote": "to decide, in any particular situation, not to use the high-risk AI system",
+      "quoteWords": 13,
+      "dutyHolder": "Provider (design); deployer (operation)",
+      "highRiskOnly": true,
+      "mappingStrength": "moderate",
+      "rationale": "A status assignment is not proof of sole automation, nor that the system falls under Annex III point 1(a)."
+    },
+    {
+      "rule": "CORS_WILDCARD",
+      "provision": "Art. 15(7)",
+      "quote": "resilient against attempts by unauthorised third parties to alter their use, outputs",
+      "quoteWords": 12,
+      "dutyHolder": "Provider",
+      "highRiskOnly": true,
+      "mappingStrength": "weak",
+      "rationale": "Wildcard CORS is a web-security weakness; the link to manipulation of AI use or outputs is indirect."
+    },
+    {
+      "rule": "SENSITIVE_DATA",
+      "provision": "Art. 10(2)",
+      "quote": "Training, validation and testing data sets shall be subject to data governance",
+      "quoteWords": 12,
+      "dutyHolder": "Provider",
+      "highRiskOnly": true,
+      "mappingStrength": "weak",
+      "rationale": "The rule detects committed documents by filename and extension; those are not necessarily training, validation, or testing data."
+    },
+    {
+      "rule": "UNSAFE_DESERIALIZE",
+      "provision": "Art. 15(7)",
+      "quote": "alter their use, outputs or performance by exploiting system vulnerabilities",
+      "quoteWords": 10,
+      "dutyHolder": "Provider",
+      "highRiskOnly": true,
+      "mappingStrength": "moderate",
+      "rationale": "Deserialisation is a concrete exploitation path of the kind the provision addresses; trust in the data is not established."
+    },
+    {
+      "rule": "ERROR_LEAKAGE",
+      "provision": "Art. 15(1)",
+      "quote": "achieve an appropriate level of accuracy, robustness, and cybersecurity",
+      "quoteWords": 9,
+      "dutyHolder": "Provider",
+      "highRiskOnly": true,
+      "mappingStrength": "weak",
+      "rationale": "Error text disclosure is not addressed by the provision; the mapping is adjacency, not correspondence."
+    },
+    {
+      "rule": "SAFETY_BYPASS",
+      "provision": "Art. 14(4)(d)",
+      "quote": "to decide, in any particular situation, not to use the high-risk AI system",
+      "quoteWords": 13,
+      "dutyHolder": "Provider (design); deployer (operation)",
+      "highRiskOnly": true,
+      "mappingStrength": "moderate",
+      "rationale": "A bypass flag can remove the ability to refrain; the rule cannot tell whether the flag is reachable in production."
+    }
+  ],
+  "indiaRows": [
+    {
+      "rule": "IN_DPDP_NOTICE",
+      "provision": "s.5(1)",
+      "quote": "accompanied or preceded by a notice given by the Data Fiduciary",
+      "quoteWords": 11,
+      "dutyHolder": "Data Fiduciary",
+      "riskTiered": false,
+      "mappingStrength": "moderate",
+      "implemented": false
+    },
+    {
+      "rule": "IN_DPDP_CONSENT_QUALITY",
+      "provision": "s.6(1)",
+      "quote": "free, specific, informed, unconditional and unambiguous with a clear affirmative action",
+      "quoteWords": 11,
+      "dutyHolder": "Data Fiduciary",
+      "riskTiered": false,
+      "mappingStrength": "weak",
+      "implemented": false
+    },
+    {
+      "rule": "IN_DPDP_SECURITY",
+      "provision": "s.8(5)",
+      "quote": "taking reasonable security safeguards to prevent personal data breach",
+      "quoteWords": 9,
+      "dutyHolder": "Data Fiduciary; Data Processor acts on its behalf",
+      "riskTiered": false,
+      "mappingStrength": "moderate",
+      "implemented": false
+    },
+    {
+      "rule": "IN_DPDP_BREACH",
+      "provision": "s.8(6)",
+      "quote": "intimation of such breach in such form and manner as may be prescribed",
+      "quoteWords": 13,
+      "dutyHolder": "Data Fiduciary",
+      "riskTiered": false,
+      "mappingStrength": "weak",
+      "implemented": false,
+      "note": "The Act fixes no number of hours. The DPDP Rules were not retrieved; rule 7 is not reviewed."
+    },
+    {
+      "rule": "IN_DPDP_ERASURE",
+      "provision": "s.8(7)(a)",
+      "quote": "erase personal data, upon the Data Principal withdrawing her consent",
+      "quoteWords": 10,
+      "dutyHolder": "Data Fiduciary; Data Processor on instruction",
+      "riskTiered": false,
+      "mappingStrength": "weak",
+      "implemented": false
+    },
+    {
+      "rule": "IN_DPDP_CHILD_CONSENT",
+      "provision": "s.9(1)",
+      "quote": "obtain verifiable consent of the parent of such child",
+      "quoteWords": 9,
+      "dutyHolder": "Data Fiduciary",
+      "riskTiered": false,
+      "mappingStrength": "moderate",
+      "implemented": false
+    },
+    {
+      "rule": "IN_DPDP_SDF",
+      "provision": "s.10(2)(a); s.10(2)(c)(i)",
+      "quote": "appoint a Data Protection Officer",
+      "additionalQuote": "periodic Data Protection Impact Assessment",
+      "quoteWords": 5,
+      "additionalQuoteWords": 5,
+      "dutyHolder": "Significant Data Fiduciary",
+      "riskTiered": true,
+      "mappingStrength": "weak",
+      "implemented": false,
+      "note": "Two quotations are joined; word count covers both."
+    },
+    {
+      "rule": "IN_DPDP_CROSS_BORDER",
+      "provision": "s.16(1)",
+      "quote": "restrict the transfer of personal data by a Data Fiduciary for processing",
+      "quoteWords": 12,
+      "dutyHolder": "Data Fiduciary",
+      "riskTiered": false,
+      "mappingStrength": "weak",
+      "implemented": false,
+      "note": "No country had been notified under s.16(1) at the date of review."
+    },
+    {
+      "rule": "IN_CERTIN_INCIDENT_6H",
+      "provision": "CERT-In Directions (ii)",
+      "quote": "within 6 hours of noticing such incidents or being brought to notice",
+      "quoteWords": 12,
+      "dutyHolder": "Service providers, intermediaries, data centres, body corporates, Government organisations",
+      "riskTiered": false,
+      "mappingStrength": "moderate",
+      "implemented": false
+    },
+    {
+      "rule": "IN_CERTIN_LOGS_180D",
+      "provision": "CERT-In Directions (iv)",
+      "quote": "maintain them securely for a rolling period of 180 days",
+      "quoteWords": 10,
+      "dutyHolder": "Same class as (ii)",
+      "riskTiered": false,
+      "mappingStrength": "moderate",
+      "implemented": false
+    }
+  ],
+  "counts": {
+    "eu": {
+      "strong": 2,
+      "moderate": 4,
+      "weak": 6
+    },
+    "indiaProposed": {
+      "strong": 0,
+      "moderate": 5,
+      "weak": 5
+    }
+  },
+  "notCovered": [
+    "EU AI Act Art. 9, 13, 17, 26, 43, 72",
+    "GDPR, including Art. 22 solely automated decisions",
+    "DPDP Rules, 2025, including rule 7",
+    "Sectoral Indian regulators (RBI, SEBI, IRDAI)",
+    "Any state-level or contractual obligation"
+  ],
+  "limitationsFile": "audit/verify/V4_LEGAL/LIMITATIONS_PARAGRAPH.md"
+}
