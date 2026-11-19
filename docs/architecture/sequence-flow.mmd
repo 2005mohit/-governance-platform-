@@ -1,0 +1,52 @@
+sequenceDiagram
+    autonumber
+    actor U as Developer / CI
+    participant CLI as cli.js
+    participant A as agreement.js
+    participant R as rulepack.js
+    participant S as scanner.js
+    participant D as Detection Layers
+    participant P as ast_check.py
+    participant AG as Aggregator
+    participant REP as reporter.js
+    participant FS as Local File System
+
+    U->>CLI: run CLI with arguments
+    CLI->>A: present terms of use
+    A->>FS: write .consent-log.json
+    A-->>CLI: consent accepted
+
+    CLI->>R: load rule packs
+    R->>R: validate YAML, regex, size
+    R-->>CLI: validated rules
+
+    CLI->>S: scan(target, rules)
+    S->>S: walk directory, skip vendor/test
+    S->>S: categorise files, build line index
+
+    loop each file (read-only)
+        S->>D: literal pattern match
+        S->>D: proximity check (9 verbs, +/-15 lines)
+        opt Python available
+            S->>P: send source on stdin
+            P->>P: parse AST, same-function gate
+            P-->>S: verdict
+        end
+        D-->>S: findings
+    end
+
+    S->>AG: project-level aggregation
+    AG->>AG: one finding per cause, route/sensitive/disclosure checks
+    AG-->>S: aggregated findings
+
+    S-->>CLI: findings
+    CLI->>REP: build reports
+    REP->>REP: score = 100 - penalties, assign band
+    REP->>REP: collect file+line evidence, redact secrets/PII
+
+    REP->>FS: write report.json
+    REP->>FS: write report.html (self-contained dashboard)
+    REP->>FS: write report.sarif (SARIF 2.1.0)
+
+    CLI->>U: exit code 0 / 1 / 2
+    U->>FS: open report.html or ingest report.sarif
