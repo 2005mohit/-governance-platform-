@@ -17,6 +17,7 @@ const USAGE =
   "Options:\n" +
   "  -y, --yes                    Accept the terms without prompting\n" +
   "  --include-tests              Also scan test and fixture directories\n" +
+  "  --scan                       Accepted for compatibility; no effect\n" +
   "  -o, --output <dir>           Where to write the report\n" +
   "  --format <json|html|sarif|all>\n" +
   "                               Which artefacts to write (default: all)\n" +
@@ -163,6 +164,19 @@ function resolveOutputDir(opts) {
 }
 
 async function main() {
+  // --help and --version short-circuit BEFORE argument validation, so
+  // `--help --wat` still prints help and exits 0. They never touch the
+  // filesystem and never prompt for consent.
+  const rawArgs = process.argv.slice(2);
+  if (rawArgs.includes("--help") || rawArgs.includes("-h")) {
+    console.log(USAGE);
+    return;
+  }
+  if (rawArgs.includes("--version") || rawArgs.includes("-V")) {
+    console.log(`${pkg.name} ${pkg.version}`);
+    return;
+  }
+
   const parsed = parseArgs(process.argv);
   if (parsed.error) {
     console.error(parsed.error);
@@ -171,18 +185,6 @@ async function main() {
     return;
   }
   const opts = parsed.opts;
-
-  // --help and --version are answered before anything touches the filesystem,
-  // so they work from a directory that is not scannable and never prompt for
-  // consent.
-  if (opts.help) {
-    console.log(USAGE);
-    return;
-  }
-  if (opts.version) {
-    console.log(`${pkg.name} ${pkg.version}`);
-    return;
-  }
 
   try {
     const stat = await fs.promises.stat(opts.rootDir);

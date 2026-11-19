@@ -15,6 +15,13 @@ const EXCLUDED_DIRS = new Set([
 ]);
 
 const TEST_DIR_PATTERN = /(^|\/)(tests?|__tests__|spec|fixtures?)(\/|$)/i;
+// Names that mark a file as a template/sample rather than a real committed
+// document. Used only by the name-based SENSITIVE_DATA check, which would
+// otherwise flag redacted/synthetic fixtures like `passport_template.png`.
+const SENSITIVE_SAMPLE_RE = /(?:^|[._-])(?:template|sample|example|mock)(?:[._-]|$)/i;
+// ERROR_LEAKAGE is about exception text reaching a CLIENT RESPONSE. Logging
+// the same value server-side is the recommended fix, not the finding.
+const LOG_CALL_RE = /\b(?:logger|log|logging|console|audit_log)\s*\.\s*(?:trace|debug|info|warn|warning|error|critical|exception|log|audit)\s*\(/i;
 const NON_RELEVANT_JSON = new Set([
   "package.json", "package-lock.json", "tsconfig.json", "composer.json", "composer.lock"
 ]);
@@ -116,6 +123,20 @@ function detectToolRegistrations(rawContent) {
   return TOOL_REGISTRATION_SIGNALS
     .filter((s) => s.pattern.test(rawContent))
     .map((s) => s.id);
+}
+
+// True when the match at `lineNumber` lives inside a server-side log call.
+// Covers the common single-line form and a multiline call whose opener is
+// within the preceding few lines.
+function isServerLogLine(lines, lineNumber) {
+  const current = lines[lineNumber - 1] || "";
+  if (LOG_CALL_RE.test(current)) return true;
+  for (let i = lineNumber - 2; i >= Math.max(0, lineNumber - 4); i--) {
+    const line = lines[i] || "";
+    if (LOG_CALL_RE.test(line) && !/\)\s*;?\s*$/.test(line)) return true;
+    if (/[;{}]\s*$/.test(line)) break;
+  }
+  return false;
 }
 
 // Marks characters that are inside a // line comment, a /* block */ comment,
@@ -404,7 +425,9 @@ class Scanner {
         // stores) can still be a problem if they're committed personal
         // documents. Content is never read — only the name is matched.
         const ext = path.extname(filePath).toLowerCase();
-        if (this.sensitiveExts.has(ext) && this.sensitiveNameRe.test(path.basename(filePath))) {
+        if (this.sensitiveExts.has(ext)
+            && this.sensitiveNameRe.test(path.basename(filePath))
+            && !SENSITIVE_SAMPLE_RE.test(path.basename(filePath))) {
           this.sensitiveFiles.push(filePath);
         }
       }
@@ -533,7 +556,13 @@ class Scanner {
           // line is skipped in favour of a live occurrence later in the
           // file. If EVERY occurrence is commented out, try the next
           // pattern rather than recording a wrong-line finding.
-          const found = findFirstNonCommentMatch(rawContent, new RegExp(pattern));
+          const found = findFirstNonCommentMatch(
+            rawContent,
+            new RegExp(pattern),
+            rule.id === "ERROR_LEAKAGE"
+              ? (line, lineNumber, lines) => !isServerLogLine(lines, lineNumber)
+              : null
+          );
           if (!found) continue;
           const { line, lineNumber } = found;
           // Secret values are never partially reproduced in the report.

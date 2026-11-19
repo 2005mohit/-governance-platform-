@@ -48,8 +48,9 @@ function maskSecretMatches(text, patterns) {
  * Block comments (/* ... *\/) are intentionally not covered — documented
  * residual. Returns {line, lineNumber} like findLineForMatch, or null.
  */
-function findFirstNonCommentMatch(content, regex) {
+function findFirstNonCommentMatch(content, regex, acceptLine) {
   const re = new RegExp(regex.source, regex.flags.includes("g") ? regex.flags : regex.flags + "g");
+  const lines = content.split("\n");
   let match;
   while ((match = re.exec(content)) !== null) {
     if (match[0] === "") { re.lastIndex++; continue; } // never hang on empty
@@ -57,8 +58,8 @@ function findFirstNonCommentMatch(content, regex) {
     if (/^\s*(?:#|\/\/)/.test(content.slice(lineStart, match.index))) continue;
     const upToMatch = content.slice(0, match.index);
     const lineNumber = upToMatch.split("\n").length;
-    const lines = content.split("\n");
     const rawLine = lines[lineNumber - 1] || "";
+    if (acceptLine && !acceptLine(rawLine, lineNumber, lines)) continue;
     return { line: rawLine.trim().substring(0, 120), lineNumber };
   }
   return null;

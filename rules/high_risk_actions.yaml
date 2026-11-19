@@ -1,5 +1,4 @@
-# Shared taxonomy of high-risk action verbs (Phase 4).
-#
+
 # Rules in eu_ai_act.yaml (and future packs, e.g. an India pack) reference
 # this list via `actionsRef: high_risk_actions` instead of duplicating it.
 # To extend coverage, add a verb here — no scanner.js change needed, and

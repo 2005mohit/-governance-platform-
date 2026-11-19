@@ -242,9 +242,7 @@
       "agentTool": false
     },
     "nh_neg_or": {
-      "rules": [
-        "NO_HUMAN_LOOP"
-      ],
+      "rules": [],
       "agentTool": false
     },
     "nh_neg_early_return": {
@@ -252,9 +250,7 @@
       "agentTool": false
     },
     "nh_neg_try": {
-      "rules": [
-        "NO_HUMAN_LOOP"
-      ],
+      "rules": [],
       "agentTool": false
     },
     "nl_pos_py": {
@@ -349,9 +345,7 @@
       "agentTool": false
     },
     "ad_fp_js_response": {
-      "rules": [
-        "AUTO_DECISION"
-      ],
+      "rules": [],
       "agentTool": false
     },
     "co_pos": {
@@ -379,9 +373,7 @@
       "agentTool": false
     },
     "sd_fp_template": {
-      "rules": [
-        "SENSITIVE_DATA"
-      ],
+      "rules": [],
       "agentTool": false
     },
     "sd_ev_csv": {
@@ -393,9 +385,7 @@
       "agentTool": false
     },
     "sd_fp_1040": {
-      "rules": [
-        "SENSITIVE_DATA"
-      ],
+      "rules": [],
       "agentTool": false
     },
     "ud_pos_pickle": {
@@ -443,9 +433,7 @@
       "agentTool": false
     },
     "el_fp_server_log": {
-      "rules": [
-        "ERROR_LEAKAGE"
-      ],
+      "rules": [],
       "agentTool": false
     },
     "sb_pos": {
@@ -463,9 +451,7 @@
       "agentTool": false
     },
     "sb_fp_validated_var": {
-      "rules": [
-        "SAFETY_BYPASS"
-      ],
+      "rules": [],
       "agentTool": false
     },
     "fw_langchain_py": {

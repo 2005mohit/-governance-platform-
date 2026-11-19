@@ -1,5 +1,31 @@
+# Dependencies
 node_modules/
+
+# Generated scan output
 out*/
 *.tgz
+
+# Development-only tests and fixtures
+test/
+test-baseline/
+test-baseline-agent/
+test-baseline-commented/
+test-baseline-decisions/
+test-exitcodes/
+test-rules/
+
+# Audit / verification material
 audit/
 audit.zip
+
+# Development docs and artefacts
+CHANGELOG.md
+Project Overview.md
+dashboard.patch
+Ai_risk_snapshot.docx
+paper/
+
+# Dev-only scripts (depend on the removed tests/audit)
+scripts/gate.js
+scripts/bench.js
+.github/workflows/ci.yml

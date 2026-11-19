@@ -26,7 +26,11 @@ Scope notes (v1, documented limits):
   - Approval references: marker-name Call/Name/Attribute, or a variable
     assigned from such a call (one common pattern: approval = review(...)).
   - Polarity: `not X`, `X == False`, `X is False` count as negative;
-    `and` needs any positive operand, `or` is conservatively ungated.
+    `and` needs any positive operand; `or` is negative when at least one
+    operand is a negative approval test and none is a positive one (the OR
+    being false then proves the negated approval operand held).
+  - A `try` block whose body contains an exiting approval guard counts as a
+    guard for the statements after it only when every handler re-raises/exits.
 """
 
 import ast
@@ -139,7 +143,13 @@ class GateChecker:
                 return "pos" if any(
                     self.polarity(v, approval_vars) == "pos" for v in test.values
                 ) else None
-            return None  # `or`: conservatively ungated
+            # `if not A or not B: raise` is a real gate: the OR being false
+            # proves every negated operand held. Keep `or` ungated when any
+            # operand is a POSITIVE approval test (its failure could be
+            # masked), or when no operand is a negative approval test.
+            has_neg = any(self.polarity(v, approval_vars) == "neg" for v in test.values)
+            has_pos = any(self.polarity(v, approval_vars) == "pos" for v in test.values)
+            return "neg" if has_neg and not has_pos else None
         return "pos" if self.test_refers_approval(test, approval_vars) else None
 
     def enclosing_scope(self, line):
@@ -164,6 +174,17 @@ class GateChecker:
             if name == action:
                 return node
         return None
+
+    def body_has_exit_guard(self, stmts, approval_vars):
+        """True if `stmts` contains an approval guard that exits the block."""
+        for stmt in stmts:
+            if isinstance(stmt, ast.If):
+                if self.polarity(stmt.test, approval_vars) == "neg" and block_exits(stmt.body):
+                    return True
+            if isinstance(stmt, ast.Assert):
+                if self.polarity(stmt.test, approval_vars) == "pos":
+                    return True
+        return False
 
     def dominated_by_guard(self, call_node, scope, approval_vars):
         """Approval guard-clause / assert dominating the call (walk-up).
@@ -202,6 +223,14 @@ class GateChecker:
                 if isinstance(stmt, ast.Assert):
                     if self.polarity(stmt.test, approval_vars) == "pos":
                         return True, "assert-gate"
+                if isinstance(stmt, ast.Try):
+                    # `try: if not approval: raise ... except: raise` still
+                    # gates the statements after it when every handler
+                    # re-raises/exits; a swallowing handler does not.
+                    if (stmt.handlers
+                            and all(block_exits(h.body) for h in stmt.handlers)
+                            and self.body_has_exit_guard(stmt.body, approval_vars)):
+                        return True, "guard-clause-in-try"
             if node is scope:
                 break
             child, node = node, self.parent.get(node)

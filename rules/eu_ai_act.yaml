@@ -233,7 +233,7 @@ rules:
     receiverCheck: true
     patterns:
       - "(?:decision|result|outcome|verdict|application)\\.?\\[?['\"]?status['\"]?\\]?\\s*[:=]\\s*['\"](approved|rejected|denied|accepted|declined)['\"]"
-      - "['\"]status['\"]\\s*:\\s*['\"](approved|rejected|denied|accepted|declined)['\"]"
+      - "(?:decision|result|outcome|verdict|application)\\w*\\s*[:=]\\s*\\{[^}\\n]*['\"]?status['\"]?\\s*:\\s*['\"](approved|rejected|denied|accepted|declined)['\"]"
     contextPatterns:
       - "\\b(decision|verdict|underwriting|creditworthiness|eligib|approval decision)\\b"
     description: >
@@ -295,7 +295,7 @@ rules:
       - "credit.?report"
       - "credit.?info"
       - "payslip|pay.?slip"
-      - "tax.?statement|tax_1040|f1040|1040"
+      - "tax.?statement|tax_1040|f1040"
       - "utility.?bill"
       - "identity.?doc"
       - "pancard|pan_card|aadhaar|ssn|social.?security"
@@ -420,13 +420,15 @@ rules:
       - "\\brequire\\w*\\s*[:=]\\s*(?:False|false)\\b"
       - "\\bskip_\\w+\\s*[:=]\\s*(?:True|true)\\b"
       - "\\bbypass_\\w+\\s*[:=]\\s*(?:True|true)\\b"
-      - "\\bvalidat(?:e|ion)\\w*\\s*[:=]\\s*(?:False|false)\\b"
+      - "\\bvalidat(?:e|ion)_(?:approval|safety|human|guard|checks?|auth)\\w*\\s*[:=]\\s*(?:False|false)\\b"
     proximityLines: 15
     description: >
       A flag that disables a required check (a require_*, skip_*, bypass_*,
-      or validate_* flag switched off) sits near a high-risk action from
-      the shared taxonomy. Disabling the check that was supposed to gate
-      the action removes the oversight the safety case depends on.
+      or validate_<safety-check> flag switched off) sits near a high-risk
+      action from the shared taxonomy. Disabling the check that was supposed
+      to gate the action removes the oversight the safety case depends on.
+      A plain result variable such as `validated = False` is not a bypass flag
+      and is not reported.
     whatItChecks: >
       Finds a switched-off bypass flag and looks for a real taxonomy action
       call (not a definition) in the same function-scoped window.

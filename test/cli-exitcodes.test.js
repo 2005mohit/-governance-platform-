@@ -155,7 +155,14 @@ function main() {
     assertExit(result, 0, "--help");
     assert.match(result.stdout, /Usage: ai-risk-snapshot \[path\] \[options\]/);
     assert.match(result.stdout, /--version/);
+    assert.match(result.stdout, /--scan\s+Accepted for compatibility; no effect/);
     assert.strictEqual(result.stderr, "", "--help must not write to stderr");
+
+    // Help short-circuits other argument validation, including unknown flags.
+    const withUnknown = runCli(["--help", "--wat"]);
+    assertExit(withUnknown, 0, "--help with unknown flag");
+    assert.match(withUnknown.stdout, /Usage: ai-risk-snapshot/);
+    assert.strictEqual(withUnknown.stderr, "", "--help --wat must not write to stderr");
   }
 
   // 7b. --version prints the package version and exits 0.
@@ -165,6 +172,11 @@ function main() {
     assertExit(result, 0, "--version");
     assert.strictEqual(result.stdout.trim(), `ai-risk-snapshot ${version}`);
     assert.strictEqual(result.stderr, "", "--version must not write to stderr");
+
+    // Version short-circuits other argument validation too.
+    const withUnknown = runCli(["--version", "--wat"]);
+    assertExit(withUnknown, 0, "--version with unknown flag");
+    assert.strictEqual(withUnknown.stdout.trim(), `ai-risk-snapshot ${version}`);
   }
 
   // 8. Nonexistent scan path is a config error.
