@@ -1,0 +1,215 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1180" width="1600" height="1180" font-family="Arial, Helvetica, sans-serif">
+<defs>
+<marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<path d="M0,0 L8,4 L0,8 Z" fill="#000000"/>
+</marker>
+</defs>
+<rect width="1600" height="1180" fill="#ffffff"/>
+<rect x="20" y="18" width="900" height="78" rx="0" fill="#ffffff" stroke="#000000" stroke-width="2"/>
+<text x="40" y="50" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700" fill="#000000" text-anchor="start">SYSTEM DESIGN — ARCHITECTURE DIAGRAM</text>
+<text x="40" y="76" font-family="Arial, Helvetica, sans-serif" font-size="12.5" font-weight="400" fill="#000000" text-anchor="start">AI Risk Snapshot · local static governance triage for AI-agent codebases</text>
+<rect x="940" y="18" width="640" height="78" rx="0" fill="#ffffff" stroke="#000000" stroke-width="1.5"/>
+<line x1="940" y1="57" x2="1580" y2="57" stroke="#000000"/>
+<line x1="1260" y1="18" x2="1260" y2="96" stroke="#000000"/>
+<text x="955" y="40" font-family="Arial, Helvetica, sans-serif" font-size="10.5" font-weight="700" fill="#000000" text-anchor="start">DOC  SYSARCH-AIRS-001</text>
+<text x="955" y="78" font-family="Arial, Helvetica, sans-serif" font-size="10.5" font-weight="700" fill="#000000" text-anchor="start">VERSION  1.2.0</text>
+<text x="1275" y="40" font-family="Arial, Helvetica, sans-serif" font-size="10.5" font-weight="700" fill="#000000" text-anchor="start">DATE  19-NOV-2026</text>
+<text x="1275" y="78" font-family="Arial, Helvetica, sans-serif" font-size="10.5" font-weight="700" fill="#000000" text-anchor="start">SCOPE  local / offline</text>
+<rect x="20" y="118" width="1560" height="110" rx="0" fill="#ffffff" stroke="#000000" stroke-width="1.4" stroke-dasharray="8 5"/>
+<rect x="40" y="107" width="250" height="22" fill="#ffffff"/>
+<text x="52" y="122" font-family="Arial, Helvetica, sans-serif" font-size="11" font-weight="700" fill="#000000" text-anchor="start">L1 · ACTORS &amp; EXTERNAL SYSTEMS</text>
+<rect x="90" y="138" width="300" height="68" rx="0" fill="#ffffff" stroke="#000000" stroke-width="1.5"/>
+<text x="381" y="154" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="700" fill="#000000" text-anchor="end">EXT</text>
+<text x="240.0" y="165" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#000000" text-anchor="middle">Developer</text>
+<text x="240.0" y="182" font-family="Arial, Helvetica, sans-serif" font-size="10.5" font-weight="400" fill="#000000" text-anchor="middle">run CLI · review HTML report</text>
+<rect x="430" y="138" width="300" height="68" rx="0" fill="#ffffff" stroke="#000000" stroke-width="1.5"/>
+<text x="721" y="154" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="700" fill="#000000" text-anchor="end">EXT</text>
+<text x="580.0" y="165" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#000000" text-anchor="middle">CI / build pipeline</text>
+<text x="580.0" y="182" font-family="Arial, Helvetica, sans-serif" font-size="10.5" font-weight="400" fill="#000000" text-anchor="middle">automated baseline gate</text>
+<rect x="770" y="138" width="320" height="68" rx="0" fill="#ffffff" stroke="#000000" stroke-width="1.5"/>
+<rect x="774" y="142" width="312" height="60" rx="0" fill="#ffffff" stroke="#000000" stroke-width="0.9"/>
+<text x="1081" y="154" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="700" fill="#000000" text-anchor="end">EXT</text>
+<text x="930.0" y="165" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#000000" text-anchor="middle">Target repository</text>
+<text x="930.0" y="182" font-family="Arial, Helvetica, sans-serif" font-size="10.5" font-weight="400" fill="#000000" text-anchor="middle">source · IaC · config · .env</text>
+<rect x="1130" y="138" width="370" height="68" rx="0" fill="#ffffff" stroke="#000000" stroke-width="1.5"/>
+<text x="1491" y="154" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="700" fill="#000000" text-anchor="end">EXT</text>
+<text x="1315.0" y="165" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#000000" text-anchor="middle">Rule-pack author</text>
+<text x="1315.0" y="182" font-family="Arial, Helvetica, sans-serif" font-size="10.5" font-weight="400" fill="#000000" text-anchor="middle">edits YAML, no engine change</text>
+<line x1="390" y1="172" x2="418" y2="172" stroke="#000000" stroke-width="1.6" marker-end="url(#ar)"/>
+<line x1="730" y1="172" x2="758" y2="172" stroke="#000000" stroke-width="1.6" marker-end="url(#ar)"/>
+<line x1="1090" y1="172" x2="1118" y2="172" stroke="#000000" stroke-width="1.6" marker-end="url(#ar)"/>
+<line x1="600" y1="228" x2="600" y2="252" stroke="#000000" stroke-width="1.6" marker-end="url(#ar)"/>
+<circle cx="622.0" cy="256.0" r="10" fill="#ffffff" stroke="#000000" stroke-width="1.3"/>
+<text x="622.0" y="260.0" font-family="Arial, Helvetica, sans-serif" font-size="10" font-weight="700" fill="#000000" text-anchor="middle">1</text>
+<rect x="20" y="254" width="1560" height="100" rx="0" fill="#ffffff" stroke="#000000" stroke-width="1.4" stroke-dasharray="8 5"/>
+<rect x="40" y="243" width="250" height="22" fill="#ffffff"/>
+<text x="52" y="258" font-family="Arial, Helvetica, sans-serif" font-size="11" font-weight="700" fill="#000000" text-anchor="start">L2 · INTERFACE LAYER</text>
+<rect x="90" y="274" width="360" height="62" rx="0" fill="#ffffff" stroke="#000000" stroke-width="1.5"/>
+<text x="441" y="290" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="700" fill="#000000" text-anchor="end">CTL</text>
+<text x="270.0" y="301" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#000000" text-anchor="middle">cli.js</text>
+<text x="270.0" y="318" font-family="Arial, Helvetica, sans-serif" font-size="10.5" font-weight="400" fill="#000000" text-anchor="middle">argument parsing · orchestration</text>
+<rect x="480" y="274" width="340" height="62" rx="0" fill="#ffffff" stroke="#000000" stroke-width="1.5"/>
+<text x="811" y="290" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="700" fill="#000000" text-anchor="end">SVC</text>
+<text x="650.0" y="301" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#000000" text-anchor="middle">agreement.js</text>
+<text x="650.0" y="318" font-family="Arial, Helvetica, sans-serif" font-size="10.5" font-weight="400" fill="#000000" text-anchor="middle">terms of use · local consent</text>
+<rect x="850" y="274" width="340" height="62" rx="0" fill="#ffffff" stroke="#000000" stroke-width="1.5"/>
+<text x="1181" y="290" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="700" fill="#000000" text-anchor="end">SVC</text>
+<text x="1020.0" y="301" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#000000" text-anchor="middle">rulepack.js</text>
+<text x="1020.0" y="318" font-family="Arial, Helvetica, sans-serif" font-size="10.5" font-weight="400" fill="#000000" text-anchor="middle">load + validate YAML</text>
+<rect x="1220" y="274" width="280" height="62" rx="0" fill="#ffffff" stroke="#000000" stroke-width="1.5"/>
+<text x="1491" y="290" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="700" fill="#000000" text-anchor="end">UTIL</text>
+<text x="1360.0" y="301" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#000000" text-anchor="middle">exitcodes.js</text>
+<text x="1360.0" y="318" font-family="Arial, Helvetica, sans-serif" font-size="10.5" font-weight="400" fill="#000000" text-anchor="middle">0 pass · 1 gate · 2 error</text>
+<line x1="450" y1="305" x2="478" y2="305" stroke="#000000" stroke-width="1.6" marker-end="url(#ar)"/>
+<line x1="820" y1="305" x2="848" y2="305" stroke="#000000" stroke-width="1.6" marker-end="url(#ar)"/>
+<line x1="1190" y1="305" x2="1218" y2="305" stroke="#000000" stroke-width="1.6" marker-end="url(#ar)"/>
+<line x1="600" y1="354" x2="600" y2="378" stroke="#000000" stroke-width="1.6" marker-end="url(#ar)"/>
+<rect x="553.5" y="346.0" width="93.0" height="15" fill="#ffffff"/>
+<text x="600.0" y="357.0" font-family="Arial, Helvetica, sans-serif" font-size="9.5" font-weight="400" fill="#000000" text-anchor="middle">validated rules</text>
+<circle cx="622.0" cy="382.0" r="10" fill="#ffffff" stroke="#000000" stroke-width="1.3"/>
+<text x="622.0" y="386.0" font-family="Arial, Helvetica, sans-serif" font-size="10" font-weight="700" fill="#000000" text-anchor="middle">2</text>
+<rect x="20" y="380" width="1560" height="280" rx="0" fill="#ffffff" stroke="#000000" stroke-width="1.4" stroke-dasharray="8 5"/>
+<rect x="40" y="369" width="250" height="22" fill="#ffffff"/>
+<text x="52" y="384" font-family="Arial, Helvetica, sans-serif" font-size="11" font-weight="700" fill="#000000" text-anchor="start">L3 · APPLICATION / DETECTION CORE</text>
+<rect x="90" y="420" width="350" height="58" rx="0" fill="#ffffff" stroke="#000000" stroke-width="1.5"/>
+<text x="431" y="436" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="700" fill="#000000" text-anchor="end">CORE</text>
+<text x="265.0" y="447" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#000000" text-anchor="middle">scanner.js</text>
+<text x="265.0" y="464" font-family="Arial, Helvetica, sans-serif" font-size="10.5" font-weight="400" fill="#000000" text-anchor="middle">walk · classify · dispatch</text>
+<rect x="470" y="420" width="330" height="58" rx="0" fill="#ffffff" stroke="#000000" stroke-width="1.5"/>
+<text x="791" y="436" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="700" fill="#000000" text-anchor="end">LIB</text>
+<text x="635.0" y="447" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#000000" text-anchor="middle">utils.js</text>
+<text x="635.0" y="464" font-family="Arial, Helvetica, sans-serif" font-size="10.5" font-weight="400" fill="#000000" text-anchor="middle">line index · cached windows</text>
+<rect x="830" y="420" width="670" height="58" rx="0" fill="#ffffff" stroke="#000000" stroke-width="1.5"/>
+<text x="1491" y="436" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="700" fill="#000000" text-anchor="end">CORE</text>
+<text x="1165.0" y="447" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#000000" text-anchor="middle">scan coordinator</text>
+<text x="1165.0" y="464" font-family="Arial, Helvetica, sans-serif" font-size="10.5" font-weight="400" fill="#000000" text-anchor="middle">per-file text through three detection layers</text>
+<line x1="440" y1="449" x2="468" y2="449" stroke="#000000" stroke-width="1.6" marker-end="url(#ar)"/>
+<line x1="800" y1="449" x2="828" y2="449" stroke="#000000" stroke-width="1.6" marker-end="url(#ar)"/>
+<rect x="90" y="500" width="350" height="78" rx="0" fill="#ffffff" stroke="#000000" stroke-width="1.5"/>
+<text x="431" y="516" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="700" fill="#000000" text-anchor="end">ENG</text>
+<text x="265.0" y="537.0" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#000000" text-anchor="middle">L1  LITERAL MATCHING</text>
+<text x="265.0" y="554.0" font-family="Arial, Helvetica, sans-serif" font-size="10.5" font-weight="400" fill="#000000" text-anchor="middle">direct + regex rules</text>
+<text x="265.0" y="568.0" font-family="Arial, Helvetica, sans-serif" font-size="10.5" font-weight="400" fill="#000000" text-anchor="middle">secrets · IAM · CORS · unsafe calls</text>
+<rect x="470" y="500" width="330" height="78" rx="0" fill="#ffffff" stroke="#000000" stroke-width="1.5"/>
+<text x="791" y="516" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="700" fill="#000000" text-anchor="end">ENG</text>
+<text x="635.0" y="537.0" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#000000" text-anchor="middle">L2  PROXIMITY ANALYSIS</text>
+<text x="635.0" y="554.0" font-family="Arial, Helvetica, sans-serif" font-size="10.5" font-weight="400" fill="#000000" text-anchor="middle">9 action verbs within ±15 lines</text>
+<text x="635.0" y="568.0" font-family="Arial, Helvetica, sans-serif" font-size="10.5" font-weight="400" fill="#000000" text-anchor="middle">function-scoped gating</text>
+<rect x="830" y="500" width="320" height="78" rx="0" fill="#ffffff" stroke="#000000" stroke-width="1.5" stroke-dasharray="6 4"/>
+<text x="1141" y="516" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="700" fill="#000000" text-anchor="end">OPT</text>
+<text x="990.0" y="537.0" font-family="Arial, Helvetica, sans-serif" font-size="11.5" font-weight="700" fill="#000000" text-anchor="middle">L3  AST VERIFICATION</text>
+<text x="990.0" y="554.0" font-family="Arial, Helvetica, sans-serif" font-size="10.5" font-weight="400" fill="#000000" text-anchor="middle">same-function approval gate</text>
+<rect x="1180" y="500" width="320" height="78" rx="0" fill="#ffffff" stroke="#000000" stroke-width="1.5"/>
+<text x="1491" y="516" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="700" fill="#000000" text-anchor="end">LIB</text>
+<text x="1340.0" y="537.0" font-family="Arial, Helvetica, sans-serif" font-size="11.5" font-weight="700" fill="#000000" text-anchor="middle">ast_check.py</text>
+<text x="1340.0" y="554.0" font-family="Arial, Helvetica, sans-serif" font-size="10.5" font-weight="400" fill="#000000" text-anchor="middle">source on stdin · stdlib only</text>
+<text x="1340.0" y="568.0" font-family="Arial, Helvetica, sans-serif" font-size="10.5" font-weight="400" fill="#000000" text-anchor="middle">never imports scanned code</text>
+<line x1="440" y1="539" x2="468" y2="539" stroke="#000000" stroke-width="1.6" marker-end="url(#ar)"/>
+<line x1="800" y1="539" x2="828" y2="539" stroke="#000000" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#ar)"/>
+<line x1="1150" y1="539" x2="1178" y2="539" stroke="#000000" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#ar)"/>
+<text x="90" y="600" font-family="Arial, Helvetica, sans-serif" font-size="10.5" font-weight="400" fill="#000000" text-anchor="start">Fallback: no Python or parse failure -&gt; L3 inconclusive -&gt; L2 proximity governs.</text>
+<text x="90" y="622" font-family="Arial, Helvetica, sans-serif" font-size="10.5" font-weight="400" fill="#000000" text-anchor="start">Read-only: source is never executed; no network module is imported.</text>
+<line x1="600" y1="660" x2="600" y2="684" stroke="#000000" stroke-width="1.6" marker-end="url(#ar)"/>
+<rect x="572.4" y="652.0" width="55.2" height="15" fill="#ffffff"/>
+<text x="600.0" y="663.0" font-family="Arial, Helvetica, sans-serif" font-size="9.5" font-weight="400" fill="#000000" text-anchor="middle">findings</text>
+<circle cx="622.0" cy="688.0" r="10" fill="#ffffff" stroke="#000000" stroke-width="1.3"/>
+<text x="622.0" y="692.0" font-family="Arial, Helvetica, sans-serif" font-size="10" font-weight="700" fill="#000000" text-anchor="middle">3</text>
+<rect x="20" y="686" width="1560" height="116" rx="0" fill="#ffffff" stroke="#000000" stroke-width="1.4" stroke-dasharray="8 5"/>
+<rect x="40" y="675" width="250" height="22" fill="#ffffff"/>
+<text x="52" y="690" font-family="Arial, Helvetica, sans-serif" font-size="11" font-weight="700" fill="#000000" text-anchor="start">L4 · AGGREGATION &amp; PRESENTATION LAYER</text>
+<rect x="90" y="722" width="380" height="62" rx="0" fill="#ffffff" stroke="#000000" stroke-width="1.5"/>
+<text x="461" y="738" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="700" fill="#000000" text-anchor="end">SVC</text>
+<text x="280.0" y="749" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#000000" text-anchor="middle">reporter.js</text>
+<text x="280.0" y="766" font-family="Arial, Helvetica, sans-serif" font-size="10.5" font-weight="400" fill="#000000" text-anchor="middle">score · band · redaction</text>
+<rect x="500" y="722" width="330" height="62" rx="0" fill="#ffffff" stroke="#000000" stroke-width="1.5"/>
+<text x="821" y="738" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="700" fill="#000000" text-anchor="end">SVC</text>
+<text x="665.0" y="749" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#000000" text-anchor="middle">dashboard.js</text>
+<text x="665.0" y="766" font-family="Arial, Helvetica, sans-serif" font-size="10.5" font-weight="400" fill="#000000" text-anchor="middle">self-contained HTML</text>
+<rect x="860" y="722" width="640" height="62" rx="0" fill="#ffffff" stroke="#000000" stroke-width="1.5"/>
+<text x="1491" y="738" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="700" fill="#000000" text-anchor="end">CORE</text>
+<text x="1180.0" y="749" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#000000" text-anchor="middle">project-level aggregator</text>
+<text x="1180.0" y="766" font-family="Arial, Helvetica, sans-serif" font-size="10.5" font-weight="400" fill="#000000" text-anchor="middle">routes · filenames · one finding per cause</text>
+<line x1="470" y1="753" x2="498" y2="753" stroke="#000000" stroke-width="1.6" marker-end="url(#ar)"/>
+<line x1="830" y1="753" x2="858" y2="753" stroke="#000000" stroke-width="1.6" marker-end="url(#ar)"/>
+<line x1="600" y1="802" x2="600" y2="826" stroke="#000000" stroke-width="1.6" marker-end="url(#ar)"/>
+<rect x="569.7" y="794.0" width="60.6" height="15" fill="#ffffff"/>
+<text x="600.0" y="805.0" font-family="Arial, Helvetica, sans-serif" font-size="9.5" font-weight="400" fill="#000000" text-anchor="middle">artefacts</text>
+<circle cx="622.0" cy="830.0" r="10" fill="#ffffff" stroke="#000000" stroke-width="1.3"/>
+<text x="622.0" y="834.0" font-family="Arial, Helvetica, sans-serif" font-size="10" font-weight="700" fill="#000000" text-anchor="middle">4</text>
+<rect x="20" y="828" width="1560" height="122" rx="0" fill="#ffffff" stroke="#000000" stroke-width="1.4" stroke-dasharray="8 5"/>
+<rect x="40" y="817" width="250" height="22" fill="#ffffff"/>
+<text x="52" y="832" font-family="Arial, Helvetica, sans-serif" font-size="11" font-weight="700" fill="#000000" text-anchor="start">L5 · DATA &amp; OUTPUT LAYER</text>
+<rect x="90" y="864" width="255" height="58" rx="0" fill="#ffffff" stroke="#000000" stroke-width="1.5"/>
+<rect x="94" y="868" width="247" height="50" rx="0" fill="#ffffff" stroke="#000000" stroke-width="0.9"/>
+<text x="336" y="880" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="700" fill="#000000" text-anchor="end">STO</text>
+<text x="217.5" y="891" font-family="Arial, Helvetica, sans-serif" font-size="11.5" font-weight="700" fill="#000000" text-anchor="middle">consent log</text>
+<text x="217.5" y="908" font-family="Arial, Helvetica, sans-serif" font-size="10.5" font-weight="400" fill="#000000" text-anchor="middle">.consent-log.json</text>
+<rect x="370" y="864" width="255" height="58" rx="0" fill="#ffffff" stroke="#000000" stroke-width="1.5"/>
+<rect x="374" y="868" width="247" height="50" rx="0" fill="#ffffff" stroke="#000000" stroke-width="0.9"/>
+<text x="616" y="880" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="700" fill="#000000" text-anchor="end">STO</text>
+<text x="497.5" y="891" font-family="Arial, Helvetica, sans-serif" font-size="11.5" font-weight="700" fill="#000000" text-anchor="middle">report.json</text>
+<text x="497.5" y="908" font-family="Arial, Helvetica, sans-serif" font-size="10.5" font-weight="400" fill="#000000" text-anchor="middle">machine-readable</text>
+<rect x="650" y="864" width="255" height="58" rx="0" fill="#ffffff" stroke="#000000" stroke-width="1.5"/>
+<rect x="654" y="868" width="247" height="50" rx="0" fill="#ffffff" stroke="#000000" stroke-width="0.9"/>
+<text x="896" y="880" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="700" fill="#000000" text-anchor="end">STO</text>
+<text x="777.5" y="891" font-family="Arial, Helvetica, sans-serif" font-size="11.5" font-weight="700" fill="#000000" text-anchor="middle">report.html</text>
+<text x="777.5" y="908" font-family="Arial, Helvetica, sans-serif" font-size="10.5" font-weight="400" fill="#000000" text-anchor="middle">review dashboard</text>
+<rect x="930" y="864" width="255" height="58" rx="0" fill="#ffffff" stroke="#000000" stroke-width="1.5"/>
+<rect x="934" y="868" width="247" height="50" rx="0" fill="#ffffff" stroke="#000000" stroke-width="0.9"/>
+<text x="1176" y="880" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="700" fill="#000000" text-anchor="end">STO</text>
+<text x="1057.5" y="891" font-family="Arial, Helvetica, sans-serif" font-size="11.5" font-weight="700" fill="#000000" text-anchor="middle">report.sarif</text>
+<text x="1057.5" y="908" font-family="Arial, Helvetica, sans-serif" font-size="10.5" font-weight="400" fill="#000000" text-anchor="middle">SARIF 2.1.0 · CI</text>
+<rect x="1210" y="864" width="290" height="58" rx="0" fill="#ffffff" stroke="#000000" stroke-width="1.5"/>
+<text x="1491" y="880" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="700" fill="#000000" text-anchor="end">IO</text>
+<text x="1355.0" y="891" font-family="Arial, Helvetica, sans-serif" font-size="11.5" font-weight="700" fill="#000000" text-anchor="middle">exit status</text>
+<text x="1355.0" y="908" font-family="Arial, Helvetica, sans-serif" font-size="10.5" font-weight="400" fill="#000000" text-anchor="middle">0 pass · 1 threshold · 2 error</text>
+<rect x="20" y="968" width="1560" height="84" rx="0" fill="#ffffff" stroke="#000000" stroke-width="1.6"/>
+<text x="40" y="992" font-family="Arial, Helvetica, sans-serif" font-size="11" font-weight="700" fill="#000000" text-anchor="start">CROSS-CUTTING CONCERNS</text>
+<line x1="40" y1="1000" x2="1000" y2="1000" stroke="#000000"/>
+<rect x="40" y="1014" width="200" height="28" rx="14" fill="#ffffff" stroke="#000000" stroke-width="1.2"/>
+<text x="140" y="1032" font-family="Arial, Helvetica, sans-serif" font-size="10" font-weight="700" fill="#000000" text-anchor="middle">Read-only scan</text>
+<rect x="250" y="1014" width="200" height="28" rx="14" fill="#ffffff" stroke="#000000" stroke-width="1.2"/>
+<text x="350" y="1032" font-family="Arial, Helvetica, sans-serif" font-size="10" font-weight="700" fill="#000000" text-anchor="middle">No network interface</text>
+<rect x="470" y="1014" width="200" height="28" rx="14" fill="#ffffff" stroke="#000000" stroke-width="1.2"/>
+<text x="570" y="1032" font-family="Arial, Helvetica, sans-serif" font-size="10" font-weight="700" fill="#000000" text-anchor="middle">No code execution</text>
+<rect x="700" y="1014" width="200" height="28" rx="14" fill="#ffffff" stroke="#000000" stroke-width="1.2"/>
+<text x="800" y="1032" font-family="Arial, Helvetica, sans-serif" font-size="10" font-weight="700" fill="#000000" text-anchor="middle">Secret redaction at report time</text>
+<text x="1030" y="992" font-family="Arial, Helvetica, sans-serif" font-size="11" font-weight="700" fill="#000000" text-anchor="start">KEY DESIGN PROPERTIES</text>
+<line x1="1030" y1="1000" x2="1560" y2="1000" stroke="#000000"/>
+<text x="1030" y="1022" font-family="Arial, Helvetica, sans-serif" font-size="10" font-weight="400" fill="#000000" text-anchor="start">• Rules live in editable YAML, not in the engine</text>
+<text x="1030" y="1040" font-family="Arial, Helvetica, sans-serif" font-size="10" font-weight="400" fill="#000000" text-anchor="start">• Findings carry file · line · masked excerpt</text>
+<text x="1030" y="1058" font-family="Arial, Helvetica, sans-serif" font-size="10" font-weight="400" fill="#000000" text-anchor="start">• Score is an interface band, not a legal verdict</text>
+<rect x="20" y="1068" width="960" height="96" rx="0" fill="#ffffff" stroke="#000000" stroke-width="1.5"/>
+<text x="40" y="1092" font-family="Arial, Helvetica, sans-serif" font-size="10.5" font-weight="700" fill="#000000" text-anchor="start">DATA FLOW REGISTER</text>
+<line x1="40" y1="1100" x2="960" y2="1100" stroke="#000000"/>
+<circle cx="50" cy="1124" r="10" fill="#ffffff" stroke="#000000" stroke-width="1.2"/>
+<text x="50" y="1128" font-family="Arial, Helvetica, sans-serif" font-size="10" font-weight="700" fill="#000000" text-anchor="middle">1</text>
+<text x="66" y="1122" font-family="Arial, Helvetica, sans-serif" font-size="9.5" font-weight="700" fill="#000000" text-anchor="start">Actors -&gt; cli.js</text>
+<text x="66" y="1137" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="400" fill="#000000" text-anchor="start">invoke CLI with arguments / CI job</text>
+<circle cx="285" cy="1124" r="10" fill="#ffffff" stroke="#000000" stroke-width="1.2"/>
+<text x="285" y="1128" font-family="Arial, Helvetica, sans-serif" font-size="10" font-weight="700" fill="#000000" text-anchor="middle">2</text>
+<text x="301" y="1122" font-family="Arial, Helvetica, sans-serif" font-size="9.5" font-weight="700" fill="#000000" text-anchor="start">rulepack -&gt; scanner</text>
+<text x="301" y="1137" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="400" fill="#000000" text-anchor="start">validated rules and action taxonomy</text>
+<circle cx="520" cy="1124" r="10" fill="#ffffff" stroke="#000000" stroke-width="1.2"/>
+<text x="520" y="1128" font-family="Arial, Helvetica, sans-serif" font-size="10" font-weight="700" fill="#000000" text-anchor="middle">3</text>
+<text x="536" y="1122" font-family="Arial, Helvetica, sans-serif" font-size="9.5" font-weight="700" fill="#000000" text-anchor="start">scanner -&gt; reporter</text>
+<text x="536" y="1137" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="400" fill="#000000" text-anchor="start">findings with evidence and severity</text>
+<circle cx="755" cy="1124" r="10" fill="#ffffff" stroke="#000000" stroke-width="1.2"/>
+<text x="755" y="1128" font-family="Arial, Helvetica, sans-serif" font-size="10" font-weight="700" fill="#000000" text-anchor="middle">4</text>
+<text x="771" y="1122" font-family="Arial, Helvetica, sans-serif" font-size="9.5" font-weight="700" fill="#000000" text-anchor="start">reporter -&gt; outputs</text>
+<text x="771" y="1137" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="400" fill="#000000" text-anchor="start">JSON · HTML · SARIF · exit status</text>
+<rect x="1000" y="1068" width="580" height="96" rx="0" fill="#ffffff" stroke="#000000" stroke-width="1.5"/>
+<text x="1020" y="1092" font-family="Arial, Helvetica, sans-serif" font-size="10.5" font-weight="700" fill="#000000" text-anchor="start">LEGEND</text>
+<line x1="1020" y1="1100" x2="1560" y2="1100" stroke="#000000"/>
+<rect x="1020" y="1112" width="140" height="26" rx="0" fill="#ffffff" stroke="#000000" stroke-width="1.5"/>
+<text x="1151" y="1128" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="700" fill="#000000" text-anchor="end"></text>
+<text x="1090.0" y="1130.0" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="700" fill="#000000" text-anchor="middle">component</text>
+<rect x="1180" y="1112" width="160" height="26" rx="0" fill="#ffffff" stroke="#000000" stroke-width="1.5" stroke-dasharray="6 4"/>
+<text x="1331" y="1128" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="700" fill="#000000" text-anchor="end"></text>
+<text x="1260.0" y="1130.0" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="700" fill="#000000" text-anchor="middle">optional / fallback</text>
+<rect x="1360" y="1112" width="140" height="26" rx="0" fill="#ffffff" stroke="#000000" stroke-width="1.5"/>
+<rect x="1364" y="1116" width="132" height="18" rx="0" fill="#ffffff" stroke="#000000" stroke-width="0.9"/>
+<text x="1491" y="1128" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="700" fill="#000000" text-anchor="end"></text>
+<text x="1430.0" y="1130.0" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="700" fill="#000000" text-anchor="middle">data store</text>
+<text x="1020" y="1155" font-family="Arial, Helvetica, sans-serif" font-size="9.5" font-weight="400" fill="#000000" text-anchor="start">Numbered circle = interface flow; see register. Dashed lane = logical layer.</text>
+</svg>
