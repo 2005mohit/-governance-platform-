@@ -1,30 +1,52 @@
-# System Design — AI Risk Snapshot
+# High-Level System Design — AI Risk Snapshot
 
-This folder contains the system-design level architecture diagram for the AI Risk Snapshot project.
+This folder documents the high-level architecture of the AI Risk Snapshot project.
+The diagram is written in **Mermaid** (plain text), so GitHub renders it directly —
+no image files (SVG/PNG) are used.
+
+## System Design
+
+```mermaid
+flowchart LR
+    actor["Developer / CI Pipeline"]
+
+    subgraph system["AI Risk Snapshot - Local Scanner"]
+        direction TB
+        input["Input: Target Repository<br/>source code, config, IaC"]
+        engine["Scan Engine<br/>rules + detection logic"]
+        report["Report Builder<br/>score, findings, evidence"]
+    end
+
+    rules[("Editable Rule Pack<br/>EU AI Act YAML")]
+    outputs[("Local Outputs<br/>JSON | HTML | SARIF")]
+
+    actor -->|"runs CLI"| engine
+    rules -->|"loaded at startup"| engine
+    input -->|"read-only scan"| engine
+    engine -->|"findings"| report
+    report --> outputs
+    outputs -->|"review / CI gate"| actor
+```
+
+## In one paragraph
+
+A developer or CI pipeline runs the **AI Risk Snapshot** CLI against a **target
+repository**. The scanner reads the repository (read-only, no execution, no network)
+and applies an **editable EU AI Act rule pack** to produce findings. A **report
+builder** turns those findings into a score, grouped evidence and three local
+artefacts — `report.json`, a self-contained `report.html` dashboard, and
+`report.sarif` — which the developer reviews or the CI pipeline uses as a gate.
+
+## Key properties
+
+- Everything runs **locally**; no data leaves the machine.
+- Rules live in a separate YAML pack and can be edited without changing the engine.
+- Scanning is **static and read-only** — scanned code is never executed.
+- Outputs are deterministic, with exit codes for CI (`0` pass, `1` threshold met, `2` error).
 
 ## Files
 
-| File | Format | Description |
-|---|---|---|
-| `system-design-architecture.svg` | SVG (vector) | Editable source. Open in Inkscape, Illustrator, or a browser. |
-| `system-design-architecture.png` | PNG (3333 × 2458) | High-resolution raster for reports, slides and README embedding. |
-
-## Layers shown
-
-The diagram is organised into five logical layers plus cross-cutting concerns:
-
-- **L1 — Actors & External Systems**: developer, CI pipeline, target repository, rule-pack author.
-- **L2 — Interface Layer**: `cli.js`, `agreement.js`, `rulepack.js`, `exitcodes.js`.
-- **L3 — Application / Detection Core**: `scanner.js`, `utils.js`, the scan coordinator, and the three detection layers — literal matching, proximity analysis, and the optional Python AST verification with its fallback path.
-- **L4 — Aggregation & Presentation**: `reporter.js`, `dashboard.js`, project-level aggregator.
-- **L5 — Data & Output Layer**: consent log, `report.json`, `report.html`, `report.sarif`, and process exit status.
-
-Cross-cutting properties are called out explicitly: read-only scanning, no network interface, no code execution, report-time redaction, editable YAML rules, file-and-line evidence, and the scoring caveat.
-
-## Key design properties
-
-1. Rules live in an editable YAML pack, not in the engine.
-2. Detection combines literal patterns, function-scoped proximity, and an optional AST gate.
-3. If Python is unavailable, AST verdicts are inconclusive and findings fall back to the proximity heuristic.
-4. The tool never executes scanned source and makes no network request.
-5. Outputs are written locally in JSON, HTML and SARIF 2.1.0, with deterministic exit codes for CI.
+| File | Purpose |
+|---|---|
+| `README.md` | This document; renders the diagram on GitHub. |
+| `system-design-architecture.mmd` | Raw Mermaid source for the same diagram (editable). |

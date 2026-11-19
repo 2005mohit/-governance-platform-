@@ -1,0 +1,19 @@
+flowchart LR
+    actor["Developer / CI Pipeline"]
+
+    subgraph system["AI Risk Snapshot - Local Scanner"]
+        direction TB
+        input["Input: Target Repository<br/>source code, config, IaC"]
+        engine["Scan Engine<br/>rules + detection logic"]
+        report["Report Builder<br/>score, findings, evidence"]
+    end
+
+    rules[("Editable Rule Pack<br/>EU AI Act YAML")]
+    outputs[("Local Outputs<br/>JSON | HTML | SARIF")]
+
+    actor -->|"runs CLI"| engine
+    rules -->|"loaded at startup"| engine
+    input -->|"read-only scan"| engine
+    engine -->|"findings"| report
+    report --> outputs
+    outputs -->|"review / CI gate"| actor
