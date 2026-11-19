@@ -1,6 +1,0 @@
-rules:
-  - severity: HIGH
-    patterns: ["db\\.delete\\s*\\("]
-  - id: NO_DETECTION
-    severity: HIGH
-    fileTypes: ["code"]
