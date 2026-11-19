@@ -1,19 +1,89 @@
-flowchart LR
-    actor["Developer / CI Pipeline"]
-
-    subgraph system["AI Risk Snapshot - Local Scanner"]
-        direction TB
-        input["Input: Target Repository<br/>source code, config, IaC"]
-        engine["Scan Engine<br/>rules + detection logic"]
-        report["Report Builder<br/>score, findings, evidence"]
+flowchart TB
+    %% ========== 1. INSTALLATION ==========
+    subgraph S1["1. INSTALLATION - one time setup"]
+        direction LR
+        NODE["Node.js 18 or higher"]
+        NPM["npm install<br/>installs js-yaml only"]
+        PY["Python 3 - optional<br/>enables AST check"]
+        NODE --> NPM --> PY
     end
 
-    rules[("Editable Rule Pack<br/>EU AI Act YAML")]
-    outputs[("Local Outputs<br/>JSON | HTML | SARIF")]
+    %% ========== 2. START ==========
+    subgraph S2["2. RUN THE SCANNER"]
+        direction LR
+        USER(["Developer or CI pipeline"])
+        CLI["cli.js<br/>parse arguments, start scan"]
+        CONSENT["agreement.js<br/>accept terms"]
+        LOG[("consent log<br/>.consent-log.json")]
+        USER --> CLI --> CONSENT --> LOG
+    end
 
-    actor -->|"runs CLI"| engine
-    rules -->|"loaded at startup"| engine
-    input -->|"read-only scan"| engine
-    engine -->|"findings"| report
-    report --> outputs
-    outputs -->|"review / CI gate"| actor
+    %% ========== 3. RULES ==========
+    subgraph S3["3. LOAD THE RULES"]
+        direction LR
+        YAML[("YAML rule pack<br/>12 EU AI Act rules<br/>9 high-risk action verbs")]
+        VALID["rulepack.js<br/>validate YAML, regex, size"]
+        YAML --> VALID
+    end
+
+    %% ========== 4. SCAN ==========
+    subgraph S4["4. READ THE PROJECT - static and read-only"]
+        direction LR
+        TARGET[("Target repository<br/>source code, config, IaC")]
+        WALK["scanner.js<br/>walk files, skip vendor and test"]
+        INDEX["utils.js<br/>line index, context windows"]
+        TARGET --> WALK --> INDEX
+    end
+
+    %% ========== 5. DETECT ==========
+    subgraph S5["5. DETECT GAPS - three layers per file"]
+        direction TB
+        L1["Layer 1 - Literal patterns<br/>secrets, IAM wildcard, CORS"]
+        L2["Layer 2 - Proximity<br/>9 verbs within 15 lines<br/>check approval and logging nearby"]
+        Q{"Python available<br/>and parse OK?"}
+        L3["Layer 3 - AST check<br/>ast_check.py, same-function gate"]
+        FB["Fallback:<br/>use Layer 2 verdict"]
+        L1 --> L2 --> Q
+        Q -->|"yes"| L3
+        Q -->|"no"| FB
+        L3 --> FN["findings with file, line, evidence"]
+        FB --> FN
+    end
+
+    %% ========== 6. AGGREGATE ==========
+    subgraph S6["6. AGGREGATE AND SCORE"]
+        direction LR
+        AGG["project-level aggregation<br/>one finding per cause<br/>route, sensitive file, disclosure"]
+        SCORE["reporter.js<br/>score = 100 minus penalties<br/>band, redaction, metadata"]
+        AGG --> SCORE
+    end
+
+    %% ========== 7. REPORTS ==========
+    subgraph S7["7. REPORT GENERATION - written locally"]
+        direction LR
+        RJ[("report.json<br/>machine-readable")]
+        RH[("report.html<br/>self-contained dashboard")]
+        RS[("report.sarif<br/>SARIF 2.1.0 for CI")]
+    end
+
+    %% ========== 8. RESULT ==========
+    subgraph S8["8. RESULT"]
+        direction LR
+        EXIT["exit codes<br/>0 pass, 1 gate met, 2 error"]
+        REVIEW["Developer reviews HTML"]
+        GATE["CI reads SARIF and exit code"]
+        EXIT --> REVIEW
+        EXIT --> GATE
+    end
+
+    %% ========== FLOW BETWEEN PHASES ==========
+    S1 -->|"tool ready"| S2
+    S2 -->|"consent accepted"| S3
+    S3 -->|"validated rules"| S4
+    S4 -->|"categorised files"| S5
+    S5 -->|"findings"| S6
+    S6 -->|"score and redacted evidence"| S7
+    S7 -->|"artefacts written"| S8
+    SCORE --> RJ
+    SCORE --> RH
+    SCORE --> RS
