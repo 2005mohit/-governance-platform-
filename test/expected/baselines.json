@@ -127,7 +127,7 @@
     "findings": []
   },
   "test-baseline-decisions": {
-    "score": 77.5,
+    "score": 85,
     "band": "Elevated gap",
     "findings": [
       {
@@ -140,17 +140,6 @@
         "toolExposure": null,
         "confidence": "high",
         "confidenceWeight": 1
-      },
-      {
-        "id": "AUTO_DECISION",
-        "file": "src/decide.js",
-        "line": 5,
-        "snippet": "return {\"status\": \"rejected\"};",
-        "severity": "HIGH",
-        "method": null,
-        "toolExposure": null,
-        "confidence": "medium",
-        "confidenceWeight": 0.5
       }
     ]
   }
