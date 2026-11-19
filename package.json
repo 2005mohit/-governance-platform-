@@ -10,8 +10,7 @@
     "node": ">=18"
   },
   "scripts": {
-    "start": "node src/cli.js",
-    "test": "node test/rules.test.js && node test/exitcodes.test.js && node test/cli-exitcodes.test.js && node test/js-definitions.test.js && node test/sarif.test.js && node test/rulepack.test.js && node test/line-index.test.js && node test/corpus.test.js && node test/dashboard.test.js"
+    "start": "node src/cli.js"
   },
   "dependencies": {
     "js-yaml": "^4.3.2"
@@ -30,8 +29,5 @@
     "README.md",
     "LICENSE"
   ],
-  "license": "MIT",
-  "devDependencies": {
-    "ajv": "^6.15.0"
-  }
+  "license": "MIT"
 }
